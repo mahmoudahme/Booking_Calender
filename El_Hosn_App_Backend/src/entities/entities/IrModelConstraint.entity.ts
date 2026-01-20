@@ -1,0 +1,38 @@
+import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity('ir_model_constraint', { schema: 'public' })
+export class IrModelConstraint {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column()
+  model!: number;
+
+  @Column()
+  module!: number;
+
+  @Column({ nullable: true })
+  create_uid!: number | null;
+
+  @Column({ nullable: true })
+  write_uid!: number | null;
+
+  @Column()
+  name!: string;
+
+  @Column({ nullable: true })
+  definition!: string | null;
+
+  @Column({ length: 1 })
+  type!: string;
+
+  @Column({ nullable: true })
+  message!: any | null;
+
+  @Column({ nullable: true })
+  create_date!: Date | null;
+
+  @Column({ nullable: true })
+  write_date!: Date | null;
+
+}
