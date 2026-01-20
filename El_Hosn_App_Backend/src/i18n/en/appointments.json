@@ -1,0 +1,12 @@
+{
+  "DOCTORS_RETRIEVED_SUCCESS": "Doctors retrieved successfully",
+  "FAILED_TO_FETCH_DOCTORS": "Failed to fetch doctors",
+  "SLOTS_RETRIEVED_SUCCESS": "Availability slots retrieved successfully",
+  "FAILED_TO_FETCH_SLOTS": "Failed to fetch slots",
+  "APPOINTMENT_BOOKED_SUCCESS": "Appointment booked successfully",
+  "FAILED_TO_BOOK_APPOINTMENT": "Failed to book appointment",
+  "REQUIRED_DATA_NOT_FOUND": "Required data (Patient, Doctor, or Slot) not found",
+  "MY_APPOINTMENTS_RETRIEVED_SUCCESS": "My appointments retrieved successfully",
+  "FAILED_TO_FETCH_APPOINTMENTS": "Failed to fetch appointments"
+}
+

@@ -1,0 +1,8 @@
+{
+  "PRODUCTS_RETRIEVED_SUCCESS": "تم جلب المنتجات بنجاح",
+  "FAILED_TO_FETCH_PRODUCTS": "فشل جلب المنتجات",
+  "PRODUCT_NOT_FOUND": "المنتج غير موجود أو غير نشط",
+  "PRODUCT_DETAILS_RETRIEVED_SUCCESS": "تم جلب تفاصيل المنتج بنجاح",
+  "FAILED_TO_FETCH_PRODUCT": "فشل جلب المنتج"
+}
+

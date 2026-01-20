@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ResponseUtil } from '../utils/response.util';
 import { I18nUtil } from '../utils/i18n.util';
 import { I18nService, I18nContext } from 'nestjs-i18n';
 
@@ -45,8 +44,11 @@ export class ResponseInterceptor implements NestInterceptor {
           !('success' in data)
         ) {
           const { message, ...rest } = data;
-          return ResponseUtil.success(
-            message,
+          return I18nUtil.success(
+            this.i18n,
+            "ar",
+            'OPERATION_SUCCESSFUL',
+            'common',
             Object.keys(rest).length > 0 ? rest : undefined,
           );
         }

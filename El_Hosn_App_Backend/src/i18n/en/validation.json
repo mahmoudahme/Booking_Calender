@@ -1,0 +1,18 @@
+{
+  "IS_NOT_EMPTY": "should not be empty",
+  "IS_STRING": "must be a string",
+  "IS_NUMBER": "must be a number",
+  "IS_EMAIL": "must be an email",
+  "IS_PHONE_NUMBER": "must be a valid phone number",
+  "MIN_LENGTH": "must be longer than or equal to {0} characters",
+  "MAX_LENGTH": "must be shorter than or equal to {0} characters",
+  "IS_DATE": "must be a valid date",
+  "IS_ENUM": "must be one of the allowed values",
+  "IS_OPTIONAL": "is optional",
+  "IS_ARRAY": "must be an array",
+  "ARRAY_MIN_SIZE": "must contain at least {0} elements",
+  "ARRAY_MAX_SIZE": "must not contain more than {0} elements",
+  "REQUIRED": "value is required",
+  "INVALID_FORMAT": "invalid format"
+}
+

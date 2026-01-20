@@ -1,0 +1,13 @@
+{
+  "OPERATION_SUCCESSFUL": "تمت العملية بنجاح",
+  "VALIDATION_FAILED": "فشل التحقق",
+  "INTERNAL_ERROR": "حدث خطأ أثناء الاتصال بالخادم",
+  "AN_ERROR_OCCURRED": "حدث خطأ",
+  "UNKNOWN_ERROR": "خطأ غير معروف",
+  "BAD_REQUEST": "طلب غير صحيح",
+  "UNAUTHORIZED": "غير مصرح",
+  "FORBIDDEN": "ممنوع",
+  "NOT_FOUND": "غير موجود",
+  "CONFLICT": "تعارض",
+  "INTERNAL_SERVER_ERROR": "خطأ في الخادم"
+}

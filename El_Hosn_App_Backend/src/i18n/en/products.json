@@ -1,0 +1,8 @@
+{
+  "PRODUCTS_RETRIEVED_SUCCESS": "Products retrieved successfully",
+  "FAILED_TO_FETCH_PRODUCTS": "Failed to fetch products",
+  "PRODUCT_NOT_FOUND": "Product not found or inactive",
+  "PRODUCT_DETAILS_RETRIEVED_SUCCESS": "Product details retrieved successfully",
+  "FAILED_TO_FETCH_PRODUCT": "Failed to fetch product"
+}
+

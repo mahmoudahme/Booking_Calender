@@ -1,0 +1,12 @@
+{
+  "DOCTORS_RETRIEVED_SUCCESS": "تم جلب الأطباء بنجاح",
+  "FAILED_TO_FETCH_DOCTORS": "فشل جلب الأطباء",
+  "SLOTS_RETRIEVED_SUCCESS": "تم جلب الأوقات المتاحة بنجاح",
+  "FAILED_TO_FETCH_SLOTS": "فشل جلب الأوقات المتاحة",
+  "APPOINTMENT_BOOKED_SUCCESS": "تم حجز الموعد بنجاح",
+  "FAILED_TO_BOOK_APPOINTMENT": "فشل حجز الموعد",
+  "REQUIRED_DATA_NOT_FOUND": "البيانات المطلوبة (المريض، الطبيب، أو الوقت) غير موجودة",
+  "MY_APPOINTMENTS_RETRIEVED_SUCCESS": "تم جلب مواعيدي بنجاح",
+  "FAILED_TO_FETCH_APPOINTMENTS": "فشل جلب المواعيد"
+}
+
