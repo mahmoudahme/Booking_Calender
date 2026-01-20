@@ -67,7 +67,7 @@ export class BookingCalendarService {
             .map((app) => {
                 const adjustDate = (d: Date | null) => {
                     if (!d) return null;
-                    return new Date(new Date(d).getTime() + 2 * 60 * 60000);
+                    return new Date(d);
                 };
 
                 const baseDate = app.appointment_date || app.search_date || app.create_date;
@@ -207,7 +207,7 @@ export class BookingCalendarService {
             });
 
             // Odoo stores in UTC. If we are in Egypt (UTC+2), we subtract 2 hours.
-            const toUTC = (d: Date) => new Date(d.getTime() - 2 * 60 * 60000);
+            const toUTC = (d: Date) => d;
 
             const appointment = this.appointmentRepository.create({
                 doctor_id: doctorId,
@@ -250,7 +250,7 @@ export class BookingCalendarService {
             id: app.id,
             docId: app.doctor_id,
             title: app.patient_name || app.english_name || 'No Name',
-            time: app.appointment_date ? app.appointment_date.toISOString().substring(11, 16) : '00:00',
+            time: app.appointment_date ? app.appointment_date.toTimeString().substring(0, 5) : '00:00',
             duration: 60, // Default or calculated
             type: app.appointment_state === 'confirmed' ? 'blue' : 'pink',
             date: app.appointment_date ? app.appointment_date.toISOString().substring(0, 10) : '',
