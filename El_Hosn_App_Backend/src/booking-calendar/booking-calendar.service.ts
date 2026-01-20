@@ -67,7 +67,7 @@ export class BookingCalendarService {
             .map((app) => {
                 const adjustDate = (d: Date | null) => {
                     if (!d) return null;
-                    return new Date(d);
+                    return new Date(d); // Browser/Node will handle local offset
                 };
 
                 const baseDate = app.appointment_date || app.search_date || app.create_date;
@@ -206,8 +206,8 @@ export class BookingCalendarService {
                 }
             });
 
-            // Odoo stores in UTC. If we are in Egypt (UTC+2), we subtract 2 hours.
-            const toUTC = (d: Date) => d;
+            // Odoo stores in UTC. If we are in Egypt (UTC+2), we subtract 2 hours from local time to store in UTC.
+            const toUTC = (d: Date) => new Date(d.getTime() - 2 * 60 * 60000);
 
             const appointment = this.appointmentRepository.create({
                 doctor_id: doctorId,

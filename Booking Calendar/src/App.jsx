@@ -336,7 +336,7 @@ function App() {
             key={app.id}
             className={`appointment-block appointment-${app.type} ${highlightedAppId === app.id ? 'appointment-highlighted' : ''}`}
             style={{
-              top: `${calculateTop(timeStr)}px`,
+              top: `${calculateTop(app.time)}px`, // Use app.time directly
               height: `${calculateHeight(app.duration)}px`
             }}
             initial={{ opacity: 0, scale: 0.95 }}
@@ -661,7 +661,7 @@ function App() {
                                   key={app.id}
                                   className={`appointment-block appointment-${app.type} ${highlightedAppId === app.id ? 'appointment-highlighted' : ''}`}
                                   style={{
-                                    top: `${calculateTop(timeStr)}px`,
+                                    top: `${calculateTop(app.time)}px`, // Use app.time directly
                                     height: `${calculateHeight(app.duration)}px`,
                                     width: `${laneWidth}%`,
                                     left: `${leftPos}%`,
