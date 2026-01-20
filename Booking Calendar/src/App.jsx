@@ -6,7 +6,7 @@ import { User, CheckCircle2, Search, Menu, X, Calendar as CalendarIcon, Moon, Su
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000/api/v1/booking-calendar'; // Adjust if port is different
+const API_BASE_URL = 'http://72.62.16.223:3000/api/v1/booking-calendar'; // Adjust if port is different
 
 
 // Mock data helpers (removed static arrays)
