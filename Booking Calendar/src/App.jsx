@@ -287,6 +287,24 @@ function App() {
     }
   };
 
+  const formatTimeRange = (startTime, duration) => {
+    if (!startTime) return '';
+    const [h, m] = startTime.split(':').map(Number);
+    const date = new Date();
+    date.setHours(h, m, 0, 0);
+    const end = new Date(date.getTime() + duration * 60000);
+    return `${startTime} - ${format(end, 'HH:mm')}`;
+  };
+
+  const formatTimeAMPM = (startTime, duration) => {
+    if (!startTime) return '';
+    const [h, m] = startTime.split(':').map(Number);
+    const date = new Date();
+    date.setHours(h, m, 0, 0);
+    const end = new Date(date.getTime() + duration * 60000);
+    return `${format(date, 'hh:mm a')} - ${format(end, 'hh:mm a')}`;
+  };
+
 
   const renderDayViewOverlays = (doc, dateStr) => (
     <>
@@ -344,10 +362,10 @@ function App() {
             whileHover={{ scale: 1.02, zIndex: 10 }}
             onClick={(e) => {
               e.stopPropagation();
-              alert(`Appointment: ${app.title}\nTime: ${app.time} (${app.duration} min)`);
+              alert(`Appointment: ${app.title}\nTime: ${formatTimeRange(app.time, app.duration)}`);
             }}
           >
-            <span className="app-time">{format(appStart, 'HH:mm')} - {format(appEnd, 'HH:mm')}</span>
+            <span className="app-time">{formatTimeRange(app.time, app.duration)}</span>
             <span className="app-title">{app.title}</span>
 
             {/* Hover Tooltip */}
@@ -355,7 +373,7 @@ function App() {
               <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{app.title}</div>
               <div style={{ fontSize: '0.7rem', opacity: 0.9 }}>Dr. {doc.name}</div>
               <div style={{ fontSize: '0.7rem', opacity: 0.9 }}>
-                {format(appStart, 'hh:mm a')} - {format(appEnd, 'hh:mm a')}
+                {formatTimeAMPM(app.time, app.duration)}
               </div>
               <div style={{ marginTop: '4px', fontStyle: 'italic', fontSize: '0.65rem' }}>
                 {app.duration} mins • {app.type.toUpperCase()}
@@ -677,7 +695,7 @@ function App() {
                                   }}
                                 >
                                   <span className="app-time" style={{ display: 'block', fontSize: '0.7em', opacity: 0.8 }}>
-                                    {format(appStart, 'HH:mm')}
+                                    {app.time}
                                   </span>
                                   <span className="app-title" style={{ fontWeight: 'bold', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                     {doctor?.name.split(' ').slice(1).join(' ')}
@@ -688,7 +706,7 @@ function App() {
                                     <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{app.title}</div>
                                     <div style={{ fontSize: '0.7rem', opacity: 0.9 }}>Dr. {doctor?.name}</div>
                                     <div style={{ fontSize: '0.7rem', opacity: 0.9 }}>
-                                      {format(appStart, 'hh:mm a')} - {format(appEnd, 'hh:mm a')}
+                                      {formatTimeAMPM(app.time, app.duration)}
                                     </div>
                                     <div style={{ marginTop: '4px', fontStyle: 'italic', fontSize: '0.65rem' }}>
                                       {app.duration} mins • {app.type.toUpperCase()}
