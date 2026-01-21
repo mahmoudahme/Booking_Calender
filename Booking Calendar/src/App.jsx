@@ -273,7 +273,7 @@ function App() {
 
   const calculateHeight = (duration) => duration * (160 / 60);
 
-  // Check if a slot conflicts with existing appointments
+  // Check if a slot conflicts with existing appointments OR is marked unavailable in slots
   const isSlotAvailable = (doctorId, startTime, duration, checkDate) => {
     const [h, m] = startTime.split(':').map(Number);
     const slotStart = h * 60 + m;
@@ -282,7 +282,8 @@ function App() {
     // Use provided date or selectedDate as fallback
     const targetDateStr = checkDate || format(selectedDate, 'yyyy-MM-dd');
 
-    return !appointments
+    // 1. Check Appointment Conflicts
+    const conflict = appointments
       .filter(a => a.docId === doctorId && a.date === targetDateStr)
       .some(app => {
         const [ah, am] = app.time.split(':').map(Number);
@@ -290,6 +291,27 @@ function App() {
         const appEnd = appStart + app.duration;
         return (slotStart < appEnd && slotEnd > appStart);
       });
+
+    if (conflict) return false;
+
+    // 2. Check Slot Availability (from doctorSlots)
+    const key = `${doctorId}_${targetDateStr}`;
+    const slots = doctorSlots[key];
+    if (!slots) return false; // No schedule loaded for this doctor/day
+
+    // We need to check if EVERY 15-min chunk in the duration is available
+    const chunksNeeded = duration / 15;
+    for (let i = 0; i < chunksNeeded; i++) {
+      const chunkTimeMin = slotStart + (i * 15);
+      const cH = Math.floor(chunkTimeMin / 60);
+      const cM = chunkTimeMin % 60;
+      const chunkTimeStr = `${cH.toString().padStart(2, '0')}:${cM.toString().padStart(2, '0')}`;
+
+      const slot = slots.find(s => s.subtime === chunkTimeStr);
+      if (!slot || !slot.available) return false;
+    }
+
+    return true;
   };
 
   const handleBookingSubmit = async (e) => {
@@ -672,25 +694,25 @@ function App() {
                         </div>
 
                         <div className="grid-body">
-                          {/* Background slots for Week View */}
+                          {/* Background slots for Week View (Open for all) */}
                           {HOURS.map(h => {
-                            const slot = doctorSlots[`${activeDoctorId}_${dateStr}`]?.find(s => s.subtime === h);
-                            const isAvailable = slot && slot.available;
+                            // In Week View, we don't block by specific doctor availability on the grid.
+                            // We allow clicking anywhere to open the modal (which then checks/selects doctor).
                             return (
                               <div
                                 key={h}
-                                className={`slot-placeholder ${!isAvailable ? 'slot-unavailable' : ''}`}
+                                className="slot-placeholder" // Always clickable
                                 onMouseDown={(e) => {
-                                  if (!isAvailable) return;
                                   e.preventDefault();
                                   setIsDragging(true);
                                   setDragStart(h);
                                   setDragEnd(h);
-                                  setDragDoctor(activeDoctor);
+                                  // Default to first doctor, user changes in modal
+                                  setDragDoctor(doctors[0]);
                                   setDragDate(dateStr);
                                 }}
                                 onMouseEnter={() => {
-                                  if (isDragging && isAvailable) {
+                                  if (isDragging) {
                                     setDragEnd(h);
                                   }
                                 }}
