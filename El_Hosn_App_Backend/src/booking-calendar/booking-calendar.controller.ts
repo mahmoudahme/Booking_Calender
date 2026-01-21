@@ -47,6 +47,11 @@ export class BookingCalendarController {
         return this.bookingCalendarService.searchAppointments(term);
     }
 
+    @Get('patients/search')
+    async searchPatients(@Query('term') term: string) {
+        return this.bookingCalendarService.searchPatients(term);
+    }
+
     @Post('seed')
     async seed() {
         return this.bookingCalendarService.seedData();

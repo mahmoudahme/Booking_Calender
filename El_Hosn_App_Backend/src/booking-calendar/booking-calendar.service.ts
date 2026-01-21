@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In } from 'typeorm';
+import { Repository, Between, In, Brackets } from 'typeorm';
 import { DoctorModel } from '../entities/entities/DoctorModel.entity';
 import { OpdRegistrationModel } from '../entities/entities/OpdRegistrationModel.entity';
 import { ResPartner } from '../entities/entities/ResPartner.entity';
@@ -165,7 +165,7 @@ export class BookingCalendarService {
     }
 
     async createAppointment(data: any) {
-        let { doctorId, patientName, date, time, duration, notes, patientId, slotIds } = data;
+        let { doctorId, patientName, date, time, duration, notes, patientId, slotIds, patientDetails } = data;
         const start = new Date(`${date}T${time}`);
         const slotCount = Math.max(1, Math.floor(duration / 15));
         const dayName = start.toLocaleDateString('en-US', { weekday: 'long' });
@@ -174,6 +174,20 @@ export class BookingCalendarService {
         let patient;
         if (patientId) {
             patient = await this.patientRepository.findOne({ where: { id: patientId } });
+
+            // Update existing patient data if provided
+            if (patient && patientDetails) {
+                patient.first_name = patientDetails.firstName || patient.first_name;
+                patient.middle_name = patientDetails.middleName || patient.middle_name;
+                patient.last_name = patientDetails.lastName || patient.last_name;
+                patient.mobile = patientDetails.mobile || patient.mobile;
+                patient.id_number = patientDetails.nationalId || patient.id_number;
+                patient.date_of_birth = patientDetails.dob || patient.date_of_birth;
+                patient.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : patient.gender;
+                patient.age = patientDetails.age || patient.age;
+                patient.english_name = patientName || patient.english_name;
+                await this.patientRepository.save(patient);
+            }
         }
 
         if (!patient) {
@@ -196,6 +210,14 @@ export class BookingCalendarService {
             patient = await this.patientRepository.save(this.patientRepository.create({
                 partner_id: partner.id,
                 english_name: patientName,
+                first_name: patientDetails?.firstName || patientName.split(' ')[0],
+                middle_name: patientDetails?.middleName,
+                last_name: patientDetails?.lastName || patientName.split(' ').slice(1).join(' '),
+                mobile: patientDetails?.mobile,
+                id_number: patientDetails?.nationalId,
+                date_of_birth: patientDetails?.dob,
+                gender: patientDetails?.gender ? patientDetails.gender.toLowerCase() : null,
+                age: patientDetails?.age,
                 mrn: `MRN-${Math.floor(100000 + Math.random() * 900000)}`,
                 create_date: new Date(),
                 write_date: new Date(),
@@ -278,6 +300,40 @@ export class BookingCalendarService {
             duration: 60, // Default or calculated
             type: app.appointment_state === 'confirmed' ? 'blue' : 'pink',
             date: app.appointment_date ? app.appointment_date.toISOString().substring(0, 10) : '',
+        }));
+    }
+
+    async searchPatients(term: string) {
+        const query = this.patientRepository.createQueryBuilder('patient')
+            .leftJoinAndSelect('patient.partner', 'partner');
+
+        if (term && term.trim() !== '') {
+            query.where(new Brackets(qb => {
+                qb.where('patient.english_name ILIKE :term', { term: `%${term}%` })
+                    .orWhere('patient.first_name ILIKE :term', { term: `%${term}%` })
+                    .orWhere('patient.middle_name ILIKE :term', { term: `%${term}%` })
+                    .orWhere('patient.last_name ILIKE :term', { term: `%${term}%` })
+                    .orWhere('patient.mobile ILIKE :term', { term: `%${term}%` })
+                    .orWhere('patient.id_number ILIKE :term', { term: `%${term}%` })
+                    .orWhere('partner.name ILIKE :term', { term: `%${term}%` });
+            }));
+        }
+
+        query.orderBy('patient.id', 'DESC').limit(50);
+
+        const patients = await query.getMany();
+
+        return patients.map(p => ({
+            id: p.id,
+            firstName: p.first_name || p.partner?.name?.split(' ')[0] || '',
+            middleName: p.middle_name || '',
+            lastName: p.last_name || p.partner?.name?.split(' ').slice(1).join(' ') || '',
+            name: `${p.first_name || ''} ${p.middle_name || ''} ${p.last_name || ''}`.trim() || p.partner?.name || p.english_name || 'Unknown',
+            mobile: p.mobile || p.mobile_number || '',
+            nationalId: p.id_number || '',
+            dob: p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : '',
+            gender: p.gender === 'male' ? 'Male' : p.gender === 'female' ? 'Female' : '',
+            age: p.age || (p.date_of_birth ? new Date().getFullYear() - new Date(p.date_of_birth).getFullYear() : '')
         }));
     }
 
