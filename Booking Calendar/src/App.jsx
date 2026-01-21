@@ -6,7 +6,7 @@ import { User, CheckCircle2, Search, Menu, X, Calendar as CalendarIcon, Moon, Su
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://72.62.16.223:3000/api/v1/booking-calendar'; // Adjust if port is different
+const API_BASE_URL = 'http://localhost:3000/api/v1/booking-calendar'; // Adjust if port is different
 
 
 // Mock data helpers (removed static arrays)
@@ -117,15 +117,55 @@ function App() {
       console.log("Fetched Appointments:", response.data);
       setAppointments(response.data.data.appointments || []);
 
-      // Fetch slots for each selected doctor and each visible day
+      // Fetch slots for ALL doctors in one go per day (Bulk Fetch)
       const slotsData = {};
-      for (const docId of selectedDoctors) {
-        for (const dateStr of currentDates) {
-          const dayName = format(new Date(dateStr), 'EEEE');
-          const slotsResponse = await axios.get(`${API_BASE_URL}/slots`, {
-            params: { doctorId: docId, day: dayName }
+
+      // We iterate over dates only (1 request per day instead of Doctors * Days)
+      for (const dateStr of currentDates) {
+        try {
+          // Calling without doctorId fetches ALL doctors
+          const scheduleResponse = await axios.get(`${API_BASE_URL}/get-schedule`, {
+            params: { date: dateStr }
           });
-          slotsData[`${docId}_${dateStr}`] = slotsResponse.data.data;
+
+          // Debugging log to see structure
+          // console.log("Full Response:", scheduleResponse.data);
+
+          // Accessing the deeply nested schedules object
+          // Structure: { success: true, data: { status: true, data: { schedules: ... } } }
+          const responseData = scheduleResponse.data;
+          const innerData = responseData.data || {};
+          const schedulesMap = innerData.data?.schedules || innerData.schedules || responseData.schedules; // Try multiple paths to be robust
+
+          if (schedulesMap) {
+
+            // Iterate over the returned doctor schedules
+            Object.keys(schedulesMap).forEach(docId => {
+              const rawSlots = schedulesMap[docId];
+
+              const normalizedSlots = rawSlots.map(s => {
+                // Normalize time from "09:00 Am" to "09:00" (24h)
+                let subtime24 = s.subtime;
+                if (typeof s.subtime === 'string' && (s.subtime.includes('m') || s.subtime.includes('M'))) {
+                  const parts = s.subtime.split(' ');
+                  if (parts.length === 2) {
+                    const [time, modifier] = parts;
+                    let [hh, mm] = time.split(':');
+                    if (hh === '12') hh = '00';
+                    if (modifier.toLowerCase() === 'pm') {
+                      hh = (parseInt(hh, 10) + 12).toString();
+                    }
+                    subtime24 = `${hh.toString().padStart(2, '0')}:${mm}`;
+                  }
+                }
+                return { ...s, subtime: subtime24, originalTime: s.subtime };
+              });
+
+              slotsData[`${docId}_${dateStr}`] = normalizedSlots;
+            });
+          }
+        } catch (err) {
+          console.error(`Failed to get schedule for date ${dateStr}`, err);
         }
       }
       setDoctorSlots(slotsData);
@@ -257,6 +297,12 @@ function App() {
     const patientName = e.target.querySelector('input[type="text"]').value;
     const notes = e.target.querySelector('textarea').value;
 
+    // Find slot ID (added for accuracy)
+    const key = `${selectedSlot.doctor.id}_${selectedSlot.date}`;
+    const slots = doctorSlots[key];
+    const slotObj = slots?.find(s => s.subtime === selectedSlot.time);
+    const slotId = slotObj ? slotObj.id : null;
+
     try {
       await axios.post(`${API_BASE_URL}/appointments`, {
         doctorId: selectedSlot.doctor.id,
@@ -265,21 +311,18 @@ function App() {
         time: selectedSlot.time,
         duration: selectedDuration,
         notes,
+        slotId,
       });
 
       setIsBooked(true);
-      // Refresh appointments
-      const startDate = format(selectedDate, 'yyyy-MM-dd') + 'T00:00:00';
-      const endDate = format(selectedDate, 'yyyy-MM-dd') + 'T23:59:59';
-      const response = await axios.get(`${API_BASE_URL}/appointments`, {
-        params: { startDate, endDate, doctorIds: selectedDoctors.join(',') }
-      });
-      setAppointments(response.data.data.appointments || []); // Access appointments key
+      // Refresh appointments and slots immediately
+      await fetchAppointments();
 
       setTimeout(() => {
         setShowModal(false);
         setIsBooked(false);
         setSelectedDuration(60);
+        window.location.reload();
       }, 2000);
     } catch (error) {
       console.error('Error booking appointment:', error);
@@ -365,7 +408,7 @@ function App() {
               alert(`Appointment: ${app.title}\nTime: ${formatTimeRange(app.time, app.duration)}`);
             }}
           >
-            <span className="app-time">{formatTimeRange(app.time, app.duration)}</span>
+            {/* <span className="app-time">{formatTimeRange(app.time, app.duration)}</span> */}
             <span className="app-title">{app.title}</span>
 
             {/* Hover Tooltip */}
@@ -528,9 +571,20 @@ function App() {
               {/* Time Gutter */}
               <div className="time-gutter">
                 <div className="time-gutter-header"></div>
-                {HOURS.map(h => (
-                  <div key={h} className={`time-label-row ${h.endsWith(':00') ? 'hour-mark' : ''}`}>{h}</div>
-                ))}
+                {HOURS.map(h => {
+                  const [hour, min] = h.split(':');
+                  const hourInt = parseInt(hour, 10);
+                  const ampm = hourInt >= 12 ? 'PM' : 'AM';
+                  let hour12 = hourInt % 12;
+                  if (hour12 === 0) hour12 = 12;
+                  const displayTime = `${hour12}:${min} ${ampm}`;
+
+                  return (
+                    <div key={h} className={`time-label-row ${h.endsWith(':00') ? 'hour-mark' : ''}`}>
+                      {displayTime}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Header logic depending on View Mode */}
@@ -547,7 +601,8 @@ function App() {
                       {/* Background slots */}
                       {HOURS.map(h => {
                         const dateStr = format(selectedDate, 'yyyy-MM-dd');
-                        const isAvailable = doctorSlots[`${doc.id}_${dateStr}`]?.some(s => s.subtime === h);
+                        const slot = doctorSlots[`${doc.id}_${dateStr}`]?.find(s => s.subtime === h);
+                        const isAvailable = slot && slot.available;
                         console.log("isAvailable", isAvailable);
                         return (
                           <div
@@ -598,7 +653,8 @@ function App() {
                         <div className="grid-body">
                           {/* Background slots for Week View */}
                           {HOURS.map(h => {
-                            const isAvailable = doctorSlots[`${activeDoctorId}_${dateStr}`]?.some(s => s.subtime === h);
+                            const slot = doctorSlots[`${activeDoctorId}_${dateStr}`]?.find(s => s.subtime === h);
+                            const isAvailable = slot && slot.available;
                             return (
                               <div
                                 key={h}
@@ -694,11 +750,11 @@ function App() {
                                     alert(`Dr. ${doctor?.name}\nPatient: ${app.title}\nTime: ${app.time}`);
                                   }}
                                 >
-                                  <span className="app-time" style={{ display: 'block', fontSize: '0.7em', opacity: 0.8 }}>
+                                  {/* <span className="app-time" style={{ display: 'block', fontSize: '0.7em', opacity: 0.8 }}>
                                     {app.time}
-                                  </span>
+                                  </span> */}
                                   <span className="app-title" style={{ fontWeight: 'bold', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {doctor?.name.split(' ').slice(1).join(' ')}
+                                    {app.title}
                                   </span>
 
                                   {/* Hover Tooltip for Week View */}

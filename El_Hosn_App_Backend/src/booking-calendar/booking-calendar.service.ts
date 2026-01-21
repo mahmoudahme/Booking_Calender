@@ -77,8 +77,21 @@ export class BookingCalendarService {
 
                 // CRITICAL FIX: If Odoo linked a specific slot (subtime), use its local time string!
                 if (app.subtime_rel && app.subtime_rel.subtime) {
-                    const [h, m] = app.subtime_rel.subtime.split(':').map(Number);
-                    finalStart.setHours(h, m, 0, 0);
+                    let timeStr = app.subtime_rel.subtime;
+
+                    // Simple parser for "09:00" or "09:00 Am"
+                    let [part1, part2] = timeStr.split(' ');
+                    let [h, m] = part1.split(':').map(Number);
+
+                    if (part2) {
+                        const mode = part2.toLowerCase().trim();
+                        if (mode === 'pm' && h < 12) h += 12;
+                        if (mode === 'am' && h === 12) h = 0;
+                    }
+
+                    if (!isNaN(h) && !isNaN(m)) {
+                        finalStart.setHours(h, m, 0, 0);
+                    }
                 }
 
                 // Calculate duration: default to 15m or use stored end_date
@@ -152,7 +165,7 @@ export class BookingCalendarService {
     }
 
     async createAppointment(data: any) {
-        let { doctorId, patientName, date, time, duration, notes, patientId } = data;
+        let { doctorId, patientName, date, time, duration, notes, patientId, slotId } = data;
         const start = new Date(`${date}T${time}`);
         const slotCount = Math.max(1, Math.floor(duration / 15));
         const dayName = start.toLocaleDateString('en-US', { weekday: 'long' });
@@ -198,13 +211,21 @@ export class BookingCalendarService {
             const chunkEnd = new Date(chunkStart.getTime() + 15 * 60000);
             const chunkTimeStr = chunkStart.toTimeString().substring(0, 5);
 
-            const slot = await this.subtimeRepository.findOne({
-                where: {
-                    doctor_id: doctorId,
-                    day: dayName,
-                    subtime: chunkTimeStr
-                }
-            });
+            let slot;
+            // Precise linking: If user sent a slotId, use it for the very first chunk (which matches the start time)
+            if (i === 0 && slotId) {
+                slot = await this.subtimeRepository.findOne({ where: { id: slotId } });
+            }
+
+            if (!slot) {
+                slot = await this.subtimeRepository.findOne({
+                    where: {
+                        doctor_id: doctorId,
+                        day: dayName,
+                        subtime: chunkTimeStr
+                    }
+                });
+            }
 
             // Odoo stores in UTC. If we are in Egypt (UTC+2), we subtract 2 hours from local time to store in UTC.
             const toUTC = (d: Date) => new Date(d.getTime() - 2 * 60 * 60000);
@@ -484,5 +505,76 @@ export class BookingCalendarService {
             repairedAppointments: repairedCount,
             deletedDuplicateSlots: deletedSlots
         };
+    }
+
+    async getDoctorSchedule(doctorId: number | null, date: string) {
+        try {
+            const dateObj = new Date(date);
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayName = dayNames[dateObj.getDay()];
+
+            let targetDoctorIds: number[] = [];
+            if (doctorId) {
+                targetDoctorIds = [doctorId];
+            } else {
+                const allDocs = await this.doctorRepository.find({ select: ['id'] });
+                targetDoctorIds = allDocs.map(d => d.id);
+            }
+
+            const schedules: any = {};
+
+            for (const docId of targetDoctorIds) {
+                const slots = await this.subtimeRepository.find({
+                    where: {
+                        doctor_id: docId,
+                        day: dayName,
+                    },
+                    select: ['id', 'subtime', 'day'],
+                    order: { id: 'ASC' }
+                });
+
+                const bookedSlots = await this.appointmentRepository.find({
+                    where: {
+                        doctor_id: docId,
+                        search_date: new Date(date),
+                    },
+                    select: ['subtime'],
+                });
+
+                const bookedSlotIds = new Set(bookedSlots.map(booking => booking.subtime));
+
+                const slotsWithBookingStatus = slots.map(slot => ({
+                    id: slot.id,
+                    subtime: slot.subtime,
+                    day: slot.day,
+                    available: !bookedSlotIds.has(slot.id),
+                }));
+
+                // If single doctor, we can keep backward compat or just use the map structure.
+                // To support "Get All", the map structure { [docId]: slots } is best.
+                schedules[docId] = slotsWithBookingStatus;
+            }
+
+            // If a specific doctor was requested, we can return just the slots to match previous expectations,
+            // OR we always return the map. For consistency with "Bulk", let's return the map (or handle in frontend).
+            // Actually, to make frontend easy: let's return { schedules: { 47: [...], 48: [...] } }
+
+            return {
+                status: true,
+                statusCode: 200,
+                message: 'DATA_RETRIEVED_SUCCESS',
+                data: {
+                    schedules: schedules // Map of DoctorID -> Slots
+                },
+            };
+        } catch (error) {
+            console.error("Error fetching schedule:", error);
+            return {
+                status: false,
+                statusCode: 500,
+                message: 'FAILED_TO_FETCH_DATA',
+                error: error.message,
+            };
+        }
     }
 }

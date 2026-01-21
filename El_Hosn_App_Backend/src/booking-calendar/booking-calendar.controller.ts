@@ -67,4 +67,13 @@ export class BookingCalendarController {
     async repairData() {
         return this.bookingCalendarService.repairData();
     }
+
+    @Get('get-schedule')
+    async getSchedule(
+        @Query('date') date: string,
+        @Query('doctorId') doctorId?: string,
+    ) {
+        const id = doctorId ? parseInt(doctorId) : null;
+        return this.bookingCalendarService.getDoctorSchedule(id, date);
+    }
 }

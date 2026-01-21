@@ -355,9 +355,10 @@ header {
 }
 
 .appointment-blue {
-  background: var(--appointment-blue);
-  color: var(--appointment-blue-text);
-  border-left: 4px solid var(--appointment-blue-text);
+  background: var(--primary);
+  color: white;
+  border-left: 4px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 6px rgba(31, 163, 145, 0.25);
 }
 
 .appointment-pink {
