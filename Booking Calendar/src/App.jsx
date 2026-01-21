@@ -6,7 +6,7 @@ import { User, CheckCircle2, Search, Menu, X, Calendar as CalendarIcon, Moon, Su
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://72.62.16.223:3000/api/v1/booking-calendar'; // Adjust if port is different
+const API_BASE_URL = 'http://localhost:3000/api/v1/booking-calendar'; // Adjust if port is different
 
 
 // Mock data helpers (removed static arrays)
@@ -297,11 +297,32 @@ function App() {
     const patientName = e.target.querySelector('input[type="text"]').value;
     const notes = e.target.querySelector('textarea').value;
 
-    // Find slot ID (added for accuracy)
+    // Find slot IDs for all chunks in the duration
     const key = `${selectedSlot.doctor.id}_${selectedSlot.date}`;
-    const slots = doctorSlots[key];
-    const slotObj = slots?.find(s => s.subtime === selectedSlot.time);
-    const slotId = slotObj ? slotObj.id : null;
+    const slots = doctorSlots[key] || [];
+
+    // Convert start time to minutes
+    const [startH, startM] = selectedSlot.time.split(':').map(Number);
+    const startTotalInMin = startH * 60 + startM;
+    const neededSlotsCount = Math.floor(selectedDuration / 15);
+
+    const collectedSlotIds = [];
+
+    for (let i = 0; i < neededSlotsCount; i++) {
+      const currentTotalMin = startTotalInMin + (i * 15);
+      const h = Math.floor(currentTotalMin / 60);
+      const m = currentTotalMin % 60;
+      const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+      // Find existing slot object
+      const slotObj = slots.find(s => s.subtime === timeStr);
+      if (slotObj) {
+        collectedSlotIds.push(slotObj.id);
+      } else {
+        // Push null if not found to maintain index alignment, or handle as error
+        collectedSlotIds.push(null);
+      }
+    }
 
     try {
       await axios.post(`${API_BASE_URL}/appointments`, {
@@ -311,7 +332,7 @@ function App() {
         time: selectedSlot.time,
         duration: selectedDuration,
         notes,
-        slotId,
+        slotIds: collectedSlotIds,
       });
 
       setIsBooked(true);

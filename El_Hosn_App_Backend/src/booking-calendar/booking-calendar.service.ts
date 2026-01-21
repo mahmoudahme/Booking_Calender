@@ -165,7 +165,7 @@ export class BookingCalendarService {
     }
 
     async createAppointment(data: any) {
-        let { doctorId, patientName, date, time, duration, notes, patientId, slotId } = data;
+        let { doctorId, patientName, date, time, duration, notes, patientId, slotIds } = data;
         const start = new Date(`${date}T${time}`);
         const slotCount = Math.max(1, Math.floor(duration / 15));
         const dayName = start.toLocaleDateString('en-US', { weekday: 'long' });
@@ -212,9 +212,12 @@ export class BookingCalendarService {
             const chunkTimeStr = chunkStart.toTimeString().substring(0, 5);
 
             let slot;
-            // Precise linking: If user sent a slotId, use it for the very first chunk (which matches the start time)
-            if (i === 0 && slotId) {
-                slot = await this.subtimeRepository.findOne({ where: { id: slotId } });
+            // Precise linking: If user sent slotIds array, use the specific ID for this chunk
+            if (slotIds && slotIds[i]) {
+                slot = await this.subtimeRepository.findOne({ where: { id: slotIds[i] } });
+            } else if (i === 0 && data.slotId) {
+                // Backward compatibility for single slotId
+                slot = await this.subtimeRepository.findOne({ where: { id: data.slotId } });
             }
 
             if (!slot) {
