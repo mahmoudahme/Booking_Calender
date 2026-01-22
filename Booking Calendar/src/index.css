@@ -528,7 +528,8 @@ header {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
@@ -540,7 +541,8 @@ header {
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   outline: none;
   border-color: var(--primary);
 }
@@ -1076,7 +1078,9 @@ header {
 /* Styles for New Appointment Modal */
 .modal-content-wide {
   max-width: 800px !important;
-  /* Reduced from 800px */
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+  /* Reduced from 800px to 600px width, added height limit */
 }
 
 

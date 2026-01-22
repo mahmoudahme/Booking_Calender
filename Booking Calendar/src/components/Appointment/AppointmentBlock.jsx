@@ -6,11 +6,16 @@ const AppointmentBlock = ({
     appointment,
     doctor,
     isHighlighted,
-    style = {}
+    style = {},
+    onClick = null
 }) => {
     const handleClick = (e) => {
         e.stopPropagation();
-        alert(`Appointment: ${appointment.title}\nTime: ${formatTimeRange(appointment.time, appointment.duration)}`);
+        if (onClick) {
+            onClick(appointment);
+        } else {
+            alert(`Appointment: ${appointment.title}\nTime: ${formatTimeRange(appointment.time, appointment.duration)}`);
+        }
     };
 
     return (

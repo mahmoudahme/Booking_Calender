@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In, Brackets } from 'typeorm';
+import { Repository, Between, In, Brackets, Not } from 'typeorm';
 import { DoctorModel } from '../entities/entities/DoctorModel.entity';
 import { OpdRegistrationModel } from '../entities/entities/OpdRegistrationModel.entity';
 import { ResPartner } from '../entities/entities/ResPartner.entity';
@@ -596,6 +596,7 @@ export class BookingCalendarService {
                     where: {
                         doctor_id: docId,
                         search_date: new Date(date),
+                        appointment_state: Not(In(['cancel', 'cancelled']))
                     },
                     select: ['subtime'],
                 });
@@ -632,6 +633,233 @@ export class BookingCalendarService {
                 status: false,
                 statusCode: 500,
                 message: 'FAILED_TO_FETCH_DATA',
+                error: error.message,
+            };
+        }
+    }
+
+    /**
+     * Get appointment by ID with full details
+     */
+    async getAppointmentById(appointmentId: number) {
+        try {
+            const appointment = await this.appointmentRepository.findOne({
+                where: { id: appointmentId },
+                relations: ['doctor', 'doctor.partner', 'patient', 'patient.partner', 'subtime_rel'],
+            });
+
+            if (!appointment) {
+                return {
+                    status: false,
+                    statusCode: 404,
+                    message: 'APPOINTMENT_NOT_FOUND',
+                };
+            }
+
+            const adjustDate = (d: Date | null) => {
+                if (!d) return null;
+                return new Date(d);
+            };
+
+            const baseDate = appointment.appointment_date || appointment.search_date || appointment.create_date;
+            let finalStart = adjustDate(baseDate);
+
+            // Parse slot time if available
+            if (appointment.subtime_rel && appointment.subtime_rel.subtime) {
+                let timeStr = appointment.subtime_rel.subtime;
+                let [part1, part2] = timeStr.split(' ');
+                let [h, m] = part1.split(':').map(Number);
+
+                if (part2) {
+                    const mode = part2.toLowerCase().trim();
+                    if (mode === 'pm' && h < 12) h += 12;
+                    if (mode === 'am' && h === 12) h = 0;
+                }
+
+                if (!isNaN(h) && !isNaN(m)) {
+                    finalStart.setHours(h, m, 0, 0);
+                }
+            }
+
+            // Calculate duration
+            let durationMinutes = 15;
+            if (appointment.appointment_date && appointment.end_date) {
+                durationMinutes = Math.floor((new Date(appointment.end_date).getTime() - new Date(appointment.appointment_date).getTime()) / 60000);
+            }
+
+            const ay = finalStart.getFullYear();
+            const am = String(finalStart.getMonth() + 1).padStart(2, '0');
+            const ad = String(finalStart.getDate()).padStart(2, '0');
+            const aDateStr = `${ay}-${am}-${ad}`;
+
+            const patientName = appointment.patient_name ||
+                appointment.english_name ||
+                (appointment.patient && appointment.patient.english_name) ||
+                (appointment.patient && appointment.patient.partner && appointment.patient.partner.name) ||
+                'No Name Patient';
+
+            return {
+                status: true,
+                statusCode: 200,
+                message: 'APPOINTMENT_RETRIEVED_SUCCESS',
+                data: {
+                    id: appointment.id,
+                    docId: appointment.doctor_id,
+                    patientId: appointment.patient_id,
+                    patientName: patientName,
+                    time: finalStart.toTimeString().substring(0, 5),
+                    duration: durationMinutes,
+                    date: aDateStr,
+                    notes: appointment.notes,
+                    state: appointment.appointment_state,
+                    patientDetails: {
+                        firstName: appointment.patient?.first_name || appointment.first_name || '',
+                        middleName: appointment.patient?.middle_name || appointment.middle_name || '',
+                        lastName: appointment.patient?.last_name || appointment.last_name || '',
+                        mobile: appointment.patient?.mobile || appointment.mobile || '',
+                        nationalId: appointment.patient?.id_number || appointment.id_number || '',
+                        dob: appointment.patient?.date_of_birth ? new Date(appointment.patient.date_of_birth).toISOString().split('T')[0] : 
+                             appointment.date_of_birth ? new Date(appointment.date_of_birth).toISOString().split('T')[0] : '',
+                        gender: appointment.patient?.gender === 'male' ? 'Male' : 
+                               appointment.patient?.gender === 'female' ? 'Female' : 
+                               appointment.gender === 'male' ? 'Male' :
+                               appointment.gender === 'female' ? 'Female' : '',
+                        age: appointment.patient?.age || appointment.age || '',
+                        additionalPhone: appointment.additional_phone || ''
+                    }
+                },
+            };
+        } catch (error) {
+            console.error('Error fetching appointment by ID:', error);
+            return {
+                status: false,
+                statusCode: 500,
+                message: 'FAILED_TO_FETCH_APPOINTMENT',
+                error: error.message,
+            };
+        }
+    }
+
+    /**
+     * Update an existing appointment
+     */
+    async updateAppointment(appointmentId: number, data: any) {
+        try {
+            const appointment = await this.appointmentRepository.findOne({
+                where: { id: appointmentId },
+                relations: ['patient'],
+            });
+
+            if (!appointment) {
+                return {
+                    status: false,
+                    statusCode: 404,
+                    message: 'APPOINTMENT_NOT_FOUND',
+                };
+            }
+
+            let { doctorId, patientName, date, time, duration, notes, patientId, slotIds, patientDetails } = data;
+
+            // Update patient details if provided
+            if (appointment.patient && patientDetails) {
+                appointment.patient.first_name = patientDetails.firstName || appointment.patient.first_name;
+                appointment.patient.middle_name = patientDetails.middleName || appointment.patient.middle_name;
+                appointment.patient.last_name = patientDetails.lastName || appointment.patient.last_name;
+                appointment.patient.mobile = patientDetails.mobile || appointment.patient.mobile;
+                appointment.patient.id_number = patientDetails.nationalId || appointment.patient.id_number;
+                appointment.patient.date_of_birth = patientDetails.dob || appointment.patient.date_of_birth;
+                appointment.patient.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : appointment.patient.gender;
+                appointment.patient.age = patientDetails.age || appointment.patient.age;
+                appointment.patient.english_name = patientName || appointment.patient.english_name;
+                await this.patientRepository.save(appointment.patient);
+            }
+
+            // Update appointment fields
+            const start = new Date(`${date}T${time}`);
+            const end = new Date(start.getTime() + duration * 60000);
+            const toUTC = (d: Date) => new Date(d.getTime() - 2 * 60 * 60000);
+
+            appointment.doctor_id = doctorId || appointment.doctor_id;
+            appointment.patient_name = patientName || appointment.patient_name;
+            appointment.english_name = patientName || appointment.english_name;
+            
+            // Update appointment fields from patient details if provided
+            if (patientDetails) {
+                appointment.first_name = patientDetails.firstName || appointment.first_name;
+                appointment.middle_name = patientDetails.middleName || appointment.middle_name;
+                appointment.last_name = patientDetails.lastName || appointment.last_name;
+                appointment.mobile = patientDetails.mobile || appointment.mobile;
+                appointment.id_number = patientDetails.nationalId || appointment.id_number;
+                appointment.date_of_birth = patientDetails.dob || appointment.date_of_birth;
+                appointment.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : appointment.gender;
+                appointment.age = patientDetails.age || appointment.age;
+                appointment.additional_phone = patientDetails.additionalPhone || appointment.additional_phone;
+            }
+            
+            appointment.appointment_date = toUTC(start);
+            appointment.end_date = toUTC(end);
+            appointment.search_date = toUTC(start);
+            appointment.notes = notes !== undefined ? notes : appointment.notes;
+            appointment.write_date = new Date();
+
+            // Update slot if provided
+            if (slotIds && slotIds[0]) {
+                const slot = await this.subtimeRepository.findOne({ where: { id: slotIds[0] } });
+                if (slot) {
+                    appointment.subtime = slot.id;
+                }
+            }
+
+            await this.appointmentRepository.save(appointment);
+
+            return {
+                status: true,
+                statusCode: 200,
+                message: 'APPOINTMENT_UPDATED_SUCCESS',
+                data: appointment,
+            };
+        } catch (error) {
+            console.error('Error updating appointment:', error);
+            return {
+                status: false,
+                statusCode: 500,
+                message: 'FAILED_TO_UPDATE_APPOINTMENT',
+                error: error.message,
+            };
+        }
+    }
+
+    /**
+     * Delete an appointment (soft delete by changing state)
+     */
+    async deleteAppointment(appointmentId: number) {
+        try {
+            const appointment = await this.appointmentRepository.findOne({
+                where: { id: appointmentId },
+            });
+
+            if (!appointment) {
+                return {
+                    status: false,
+                    statusCode: 404,
+                    message: 'APPOINTMENT_NOT_FOUND',
+                };
+            }
+
+            // Hard Delete as requested: Remove the record completely
+            await this.appointmentRepository.delete(appointmentId);
+
+            return {
+                status: true,
+                statusCode: 200,
+                message: 'APPOINTMENT_DELETED_SUCCESS',
+            };
+        } catch (error) {
+            console.error('Error deleting appointment:', error);
+            return {
+                status: false,
+                statusCode: 500,
+                message: 'FAILED_TO_DELETE_APPOINTMENT',
                 error: error.message,
             };
         }

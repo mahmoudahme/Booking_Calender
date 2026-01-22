@@ -21,7 +21,8 @@ const WeekView = ({
     selectedDuration,
     showModal,
     onDragStart,
-    onDragUpdate
+    onDragUpdate,
+    onAppointmentClick
 }) => {
     const weekDays = getWeekDays(selectedDate);
     const activeDoctorId = selectedDoctors[0];
@@ -114,6 +115,7 @@ const WeekView = ({
                                             appointment={app}
                                             doctor={doctor}
                                             isHighlighted={highlightedAppId === app.id}
+                                            onClick={onAppointmentClick}
                                             style={{
                                                 width: `${laneWidth}%`,
                                                 left: `${leftPos}%`,

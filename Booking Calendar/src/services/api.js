@@ -105,6 +105,46 @@ class BookingAPI {
             throw error;
         }
     }
+
+    /**
+     * Get appointment by ID
+     */
+    async getAppointmentById(appointmentId) {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/appointments/${appointmentId}`);
+            return response.data.data || response.data;
+        } catch (error) {
+            console.error('Error fetching appointment:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update appointment
+     */
+    async updateAppointment(appointmentId, appointmentData) {
+        try {
+            const response = await axios.put(`${API_BASE_URL}/appointments/${appointmentId}`, appointmentData);
+            return response.data;
+        } catch (error) {
+            console.error('Error updating appointment:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Delete appointment
+     */
+    async deleteAppointment(appointmentId) {
+        try {
+            console.log('Deleting appointment with ID:', appointmentId);
+            const response = await axios.delete(`${API_BASE_URL}/appointments/${appointmentId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error deleting appointment:', error);
+            throw error;
+        }
+    }
 }
 
 // Export singleton instance

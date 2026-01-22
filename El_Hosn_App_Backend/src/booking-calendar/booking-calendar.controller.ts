@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Query, Param } from '@nestjs/common';
 import { BookingCalendarService } from './booking-calendar.service';
 
 @Controller('api/v1/booking-calendar')
@@ -80,5 +80,20 @@ export class BookingCalendarController {
     ) {
         const id = doctorId ? parseInt(doctorId) : null;
         return this.bookingCalendarService.getDoctorSchedule(id, date);
+    }
+
+    @Get('appointments/:id')
+    async getAppointmentById(@Param('id') id: string) {
+        return this.bookingCalendarService.getAppointmentById(parseInt(id));
+    }
+
+    @Put('appointments/:id')
+    async updateAppointment(@Param('id') id: string, @Body() data: any) {
+        return this.bookingCalendarService.updateAppointment(parseInt(id), data);
+    }
+
+    @Delete('appointments/:id')
+    async deleteAppointment(@Param('id') id: string) {
+        return this.bookingCalendarService.deleteAppointment(parseInt(id));
     }
 }

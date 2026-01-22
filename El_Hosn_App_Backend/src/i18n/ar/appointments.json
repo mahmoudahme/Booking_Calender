@@ -7,6 +7,13 @@
   "FAILED_TO_BOOK_APPOINTMENT": "فشل حجز الموعد",
   "REQUIRED_DATA_NOT_FOUND": "البيانات المطلوبة (المريض، الطبيب، أو الوقت) غير موجودة",
   "MY_APPOINTMENTS_RETRIEVED_SUCCESS": "تم جلب مواعيدي بنجاح",
-  "FAILED_TO_FETCH_APPOINTMENTS": "فشل جلب المواعيد"
+  "FAILED_TO_FETCH_APPOINTMENTS": "فشل جلب المواعيد",
+  "APPOINTMENT_RETRIEVED_SUCCESS": "تم جلب تفاصيل الموعد بنجاح",
+  "FAILED_TO_FETCH_APPOINTMENT": "فشل جلب تفاصيل الموعد",
+  "APPOINTMENT_NOT_FOUND": "الموعد غير موجود",
+  "APPOINTMENT_UPDATED_SUCCESS": "تم تحديث الموعد بنجاح",
+  "FAILED_TO_UPDATE_APPOINTMENT": "فشل تحديث الموعد",
+  "APPOINTMENT_DELETED_SUCCESS": "تم حذف الموعد بنجاح",
+  "FAILED_TO_DELETE_APPOINTMENT": "فشل حذف الموعد"
 }
 

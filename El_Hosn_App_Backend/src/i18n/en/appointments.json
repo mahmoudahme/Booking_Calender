@@ -7,6 +7,13 @@
   "FAILED_TO_BOOK_APPOINTMENT": "Failed to book appointment",
   "REQUIRED_DATA_NOT_FOUND": "Required data (Patient, Doctor, or Slot) not found",
   "MY_APPOINTMENTS_RETRIEVED_SUCCESS": "My appointments retrieved successfully",
-  "FAILED_TO_FETCH_APPOINTMENTS": "Failed to fetch appointments"
+  "FAILED_TO_FETCH_APPOINTMENTS": "Failed to fetch appointments",
+  "APPOINTMENT_RETRIEVED_SUCCESS": "Appointment details retrieved successfully",
+  "FAILED_TO_FETCH_APPOINTMENT": "Failed to fetch appointment details",
+  "APPOINTMENT_NOT_FOUND": "Appointment not found",
+  "APPOINTMENT_UPDATED_SUCCESS": "Appointment updated successfully",
+  "FAILED_TO_UPDATE_APPOINTMENT": "Failed to update appointment",
+  "APPOINTMENT_DELETED_SUCCESS": "Appointment deleted successfully",
+  "FAILED_TO_DELETE_APPOINTMENT": "Failed to delete appointment"
 }
 

@@ -14,12 +14,16 @@ const AppointmentModal = ({
     setSelectedSlot,
     isSlotAvailable,
     onSubmit,
-    onClose
+    onClose,
+    editMode = false,
+    editingAppointment = null,
+    onDelete = null
 }) => {
     const [isNewPatient, setIsNewPatient] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [searchResults, setSearchResults] = useState([]); // State for search results
+    const [notes, setNotes] = useState('');
 
     // Controlled Form State
     const [patientData, setPatientData] = useState({
@@ -34,10 +38,55 @@ const AppointmentModal = ({
         additionalPhone: ''
     });
 
+    // Load appointment data in edit mode
+    useEffect(() => {
+        if (editMode && editingAppointment) {
+            // Set patient data
+            setPatientData({
+                firstName: editingAppointment.patientDetails?.firstName || '',
+                middleName: editingAppointment.patientDetails?.middleName || '',
+                lastName: editingAppointment.patientDetails?.lastName || '',
+                mobile: editingAppointment.patientDetails?.mobile || '',
+                nationalId: editingAppointment.patientDetails?.nationalId || '',
+                dob: editingAppointment.patientDetails?.dob || '',
+                age: editingAppointment.patientDetails?.age || '',
+                gender: editingAppointment.patientDetails?.gender || '',
+                additionalPhone: editingAppointment.patientDetails?.additionalPhone || ''
+            });
+
+            // Set patient selection
+            if (editingAppointment.patientId) {
+                setIsNewPatient(false);
+                setSelectedPatient({
+                    id: editingAppointment.patientId,
+                    name: editingAppointment.patientName
+                });
+                setSearchTerm(editingAppointment.patientName);
+            } else {
+                setIsNewPatient(true);
+            }
+
+            // Set notes
+            setNotes(editingAppointment.notes || '');
+        } else {
+            // Reset form when not in edit mode
+            setIsNewPatient(true);
+            setSearchTerm('');
+            setSelectedPatient(null);
+            setSearchResults([]);
+            setNotes('');
+            setPatientData({
+                firstName: '', middleName: '', lastName: '',
+                mobile: '', nationalId: '', dob: '', age: '',
+                gender: '', additionalPhone: ''
+            });
+        }
+    }, [editMode, editingAppointment]);
+
     // Debounced Search & Fetch
     useEffect(() => {
         const timer = setTimeout(async () => {
-            if (!isNewPatient) {
+            if (!isNewPatient && searchTerm.trim().length >= 2) {
                 // Prevent re-fetching if the search term matches the selected patient
                 if (selectedPatient && searchTerm === selectedPatient.name) {
                     return;
@@ -71,10 +120,20 @@ const AppointmentModal = ({
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setPatientData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setPatientData(prev => {
+            const newData = {
+                ...prev,
+                [name]: value
+            };
+            
+            // Auto-update search term (patient name) when name fields change
+            if (name === 'firstName' || name === 'middleName' || name === 'lastName') {
+                const fullName = `${newData.firstName || ''} ${newData.middleName || ''} ${newData.lastName || ''}`.trim().replace(/\s+/g, ' ');
+                setSearchTerm(fullName);
+            }
+            
+            return newData;
+        });
     };
 
     // Calculate Age from DOB
@@ -123,7 +182,7 @@ const AppointmentModal = ({
                     {!isBooked ? (
                         <>
                             <div className="modal-header">
-                                <h2>New Appointment</h2>
+                                <h2>{editMode ? 'Edit Appointment' : 'New Appointment'}</h2>
                                 <button
                                     className="btn-close"
                                     onClick={onClose}
@@ -256,15 +315,9 @@ const AppointmentModal = ({
                                                     <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
                                                     <input
                                                         type="text"
-                                                        placeholder="Select or search patient..."
+                                                        placeholder="Type to search patient (min 2 chars)..."
                                                         value={searchTerm}
                                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                                        onClick={() => {
-                                                            // Trigger re-fetch or ensure list is visible if empty
-                                                            if (searchResults.length === 0) {
-                                                                // Force update to trigger effect if needed, mostly handled by effect
-                                                            }
-                                                        }}
                                                         style={{ paddingLeft: '40px', paddingRight: '30px' }}
                                                         autoFocus
                                                         autoComplete="off"
@@ -313,7 +366,7 @@ const AppointmentModal = ({
                                         )}
 
                                         {/* Patient Form Fields */}
-                                        {(isNewPatient || selectedPatient) && (
+                                        {(isNewPatient || selectedPatient || editMode) && (
                                             <>
                                                 <h4 style={{ fontSize: '0.9rem', marginTop: '1.5rem', marginBottom: '1rem', color: 'var(--text-secondary)' }}>BASIC INFORMATION</h4>
 
@@ -435,20 +488,43 @@ const AppointmentModal = ({
                                                 placeholder="Brief description..."
                                                 rows="3"
                                                 style={{ resize: 'none', width: '100%' }}
+                                                value={notes}
+                                                onChange={(e) => setNotes(e.target.value)}
                                             ></textarea>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="modal-footer">
-                                    <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                                    <button
-                                        type="submit"
-                                        className="btn btn-primary"
-                                        disabled={selectedSlot && !isSlotAvailable(selectedSlot.doctor.id, selectedSlot.time, selectedDuration, selectedSlot.date)}
-                                    >
-                                        Confirm Booking
-                                    </button>
+                                <div className="modal-footer" style={{ display: 'flex', justifyContent: editMode ? 'space-between' : 'flex-end' }}>
+                                    {editMode && onDelete && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-danger"
+                                            onClick={() => {
+                                                if (window.confirm('Are you sure you want to delete this appointment?')) {
+                                                    console.log('Deleting appointment object:', editingAppointment);
+                                                    if (!editingAppointment?.id) {
+                                                        alert('Error: Could not find appointment ID to delete');
+                                                        return;
+                                                    }
+                                                    onDelete(editingAppointment.id);
+                                                }
+                                            }}
+                                            style={{ background: '#d32f2f', color: 'white' }}
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                                        <button
+                                            type="submit"
+                                            className="btn btn-primary"
+                                            disabled={!editMode && selectedSlot && !isSlotAvailable(selectedSlot.doctor.id, selectedSlot.time, selectedDuration, selectedSlot.date)}
+                                        >
+                                            {editMode ? 'Update Appointment' : 'Confirm Booking'}
+                                        </button>
+                                    </div>
                                 </div>
                             </form>
                         </>

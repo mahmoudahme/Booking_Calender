@@ -20,7 +20,8 @@ const DayView = ({
     selectedDuration,
     showModal,
     onDragStart,
-    onDragUpdate
+    onDragUpdate,
+    onAppointmentClick
 }) => {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
@@ -80,6 +81,7 @@ const DayView = ({
                                     appointment={app}
                                     doctor={doc}
                                     isHighlighted={highlightedAppId === app.id}
+                                    onClick={onAppointmentClick}
                                 />
                             ))}
                     </div>

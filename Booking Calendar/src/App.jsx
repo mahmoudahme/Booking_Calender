@@ -23,6 +23,8 @@ function App() {
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [selectedDuration, setSelectedDuration] = useState(DEFAULT_DURATION);
     const [isBooked, setIsBooked] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [editingAppointment, setEditingAppointment] = useState(null);
 
     // Custom Hooks
     const { doctors, selectedDoctors, setSelectedDoctors } = useDoctors();
@@ -58,6 +60,47 @@ function App() {
             const amount = direction === 'next' ? 1 : -1;
             const days = viewMode === VIEW_MODES.DAY ? amount : amount * 7;
             setSelectedDate(prev => addDays(prev, days));
+        }
+    };
+
+    // Handle appointment click (edit mode)
+    const handleAppointmentClick = async (appointment) => {
+        try {
+            // Fetch full appointment details
+            const fullAppointment = await bookingAPI.getAppointmentById(appointment.id);
+            
+            console.log('Full appointment data:', fullAppointment);
+            console.log('Patient details:', fullAppointment?.data?.patientDetails);
+
+            // Extract the actual appointment data from the API response
+            const appointmentData = fullAppointment?.data || fullAppointment;
+
+            // Defensive: Ensure ID exists in the object we store in state
+            if (appointmentData && !appointmentData.id) {
+                console.warn('API response missing ID, using ID from click event');
+                appointmentData.id = appointment.id;
+            }
+
+            // Find the doctor
+            const doctor = doctors.find(d => d.id === appointment.docId);
+
+            // Set edit mode state
+            setEditMode(true);
+            setEditingAppointment(appointmentData);
+
+            // Set slot info for the modal
+            setSelectedSlot({
+                doctor: doctor,
+                time: appointment.time,
+                date: appointment.date
+            });
+            setSelectedDuration(appointment.duration);
+
+            // Open modal
+            setShowModal(true);
+        } catch (error) {
+            console.error('Error loading appointment:', error);
+            alert('Failed to load appointment details.');
         }
     };
 
@@ -99,7 +142,29 @@ function App() {
         return true;
     };
 
-    // Handle booking submission
+    // Handle appointment deletion
+    const handleDeleteAppointment = async (appointmentId) => {
+        if (!appointmentId) {
+            alert('Error: No appointment ID provided for deletion');
+            console.error('Delete called with missing ID');
+            return;
+        }
+
+        try {
+            console.log('Attempting to delete appointment with ID:', appointmentId);
+            await bookingAPI.deleteAppointment(appointmentId);
+            setShowModal(false);
+            setEditMode(false);
+            setEditingAppointment(null);
+            await refetch();
+            alert('Appointment deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting appointment:', error);
+            alert('Failed to delete appointment. Please try again.');
+        }
+    };
+
+    // Handle booking submission (create or update)
     const handleBookingSubmit = async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -151,7 +216,7 @@ function App() {
         }
 
         try {
-            await bookingAPI.createAppointment({
+            const appointmentData = {
                 doctorId: selectedSlot.doctor.id,
                 patientName, // Full name
                 patientId: patientId ? parseInt(patientId) : null,
@@ -171,7 +236,21 @@ function App() {
                 duration: selectedDuration,
                 notes,
                 slotIds: collectedSlotIds
-            });
+            };
+
+            if (editMode && editingAppointment) {
+                if (!editingAppointment.id) {
+                    alert('Error: Missing appointment ID for update');
+                    return;
+                }
+                console.log('Updating appointment with ID:', editingAppointment.id);
+                // Update existing appointment
+                // Include id in the body as well, just in case
+                await bookingAPI.updateAppointment(editingAppointment.id, { ...appointmentData, id: editingAppointment.id });
+            } else {
+                // Create new appointment
+                await bookingAPI.createAppointment(appointmentData);
+            }
 
             setIsBooked(true);
             await refetch();
@@ -179,12 +258,14 @@ function App() {
             setTimeout(() => {
                 setShowModal(false);
                 setIsBooked(false);
+                setEditMode(false);
+                setEditingAppointment(null);
                 setSelectedDuration(DEFAULT_DURATION);
                 window.location.reload();
             }, 2000);
         } catch (error) {
-            console.error('Error booking appointment:', error);
-            alert('Failed to book appointment. Please try again.');
+            console.error(`Error ${editMode ? 'updating' : 'booking'} appointment:`, error);
+            alert(`Failed to ${editMode ? 'update' : 'book'} appointment. Please try again.`);
         }
     };
 
@@ -223,6 +304,7 @@ function App() {
                     showModal={showModal}
                     onDragStart={dragState.startDrag}
                     onDragUpdate={dragState.updateDrag}
+                    onAppointmentClick={handleAppointmentClick}
                 />
 
                 <Sidebar
@@ -246,7 +328,14 @@ function App() {
                 setSelectedSlot={setSelectedSlot}
                 isSlotAvailable={isSlotAvailable}
                 onSubmit={handleBookingSubmit}
-                onClose={() => setShowModal(false)}
+                onClose={() => {
+                    setShowModal(false);
+                    setEditMode(false);
+                    setEditingAppointment(null);
+                }}
+                editMode={editMode}
+                editingAppointment={editingAppointment}
+                onDelete={handleDeleteAppointment}
             />
         </div>
     );

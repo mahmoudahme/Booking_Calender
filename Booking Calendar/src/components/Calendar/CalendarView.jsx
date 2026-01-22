@@ -17,7 +17,8 @@ const CalendarView = ({
     selectedDuration,
     showModal,
     onDragStart,
-    onDragUpdate
+    onDragUpdate,
+    onAppointmentClick
 }) => {
     return (
         <section className="scheduler-main">
@@ -45,6 +46,7 @@ const CalendarView = ({
                             showModal={showModal}
                             onDragStart={onDragStart}
                             onDragUpdate={onDragUpdate}
+                            onAppointmentClick={onAppointmentClick}
                         />
                     ) : (
                         <WeekView
@@ -63,6 +65,7 @@ const CalendarView = ({
                             showModal={showModal}
                             onDragStart={onDragStart}
                             onDragUpdate={onDragUpdate}
+                            onAppointmentClick={onAppointmentClick}
                         />
                     )}
                 </div>
