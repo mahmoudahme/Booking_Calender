@@ -182,9 +182,9 @@ export class BookingCalendarService {
                 patient.last_name = patientDetails.lastName || patient.last_name;
                 patient.mobile = patientDetails.mobile || patient.mobile;
                 patient.id_number = patientDetails.nationalId || patient.id_number;
-                patient.date_of_birth = patientDetails.dob || patient.date_of_birth;
+                patient.date_of_birth = patientDetails?.dob ? new Date(patientDetails.dob) : patient.date_of_birth;
                 patient.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : patient.gender;
-                patient.age = patientDetails.age || patient.age;
+                patient.age = patientDetails?.age ? parseInt(patientDetails.age) : patient.age;
                 patient.english_name = patientName || patient.english_name;
                 await this.patientRepository.save(patient);
             }
@@ -215,9 +215,9 @@ export class BookingCalendarService {
                 last_name: patientDetails?.lastName || patientName.split(' ').slice(1).join(' '),
                 mobile: patientDetails?.mobile,
                 id_number: patientDetails?.nationalId,
-                date_of_birth: patientDetails?.dob,
+                date_of_birth: patientDetails?.dob ? new Date(patientDetails.dob) : null,
                 gender: patientDetails?.gender ? patientDetails.gender.toLowerCase() : null,
-                age: patientDetails?.age,
+                age: patientDetails?.age ? parseInt(patientDetails.age) : null,
                 mrn: `MRN-${Math.floor(100000 + Math.random() * 900000)}`,
                 create_date: new Date(),
                 write_date: new Date(),
