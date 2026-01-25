@@ -41,7 +41,7 @@ const AppointmentBlock = ({
                     {formatTimeAMPM(appointment.time, appointment.duration)}
                 </div>
                 <div style={{ marginTop: '4px', fontStyle: 'italic', fontSize: '0.65rem' }}>
-                    {appointment.duration} mins • {appointment.type.toUpperCase()}
+                    {appointment.duration} mins • {(appointment.state || appointment.type).toUpperCase().replace(/_/g, ' ')}
                 </div>
             </div>
         </motion.div>

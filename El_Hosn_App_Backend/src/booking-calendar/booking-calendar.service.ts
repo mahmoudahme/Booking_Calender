@@ -113,13 +113,25 @@ export class BookingCalendarService {
                     (app.patient && app.patient.partner && app.patient.partner.name) ||
                     'No Name Patient';
 
+                const getStateColor = (state: string) => {
+                    const s = (state || '').toLowerCase().trim();
+                    if (s === 'onthyfly') return 'gray';
+                    if (['confirmed', 'confirm'].includes(s)) return 'teal';
+                    if (s === 'arrived') return 'blue';
+                    if (s === 'in_chair') return 'purple';
+                    if (s === 'in_payment') return 'orange';
+                    if (s === 'paid') return 'green';
+                    if (s === 'closed') return 'pink';
+                    return 'blue'; // Default
+                };
+
                 return {
                     id: app.id,
                     docId: app.doctor_id,
                     title: title,
                     time: finalStart.toTimeString().substring(0, 5), // Local time string
                     duration: 15,
-                    type: (['confirmed', 'confirm', 'onthyfly'].includes(app.appointment_state)) ? 'blue' : 'pink',
+                    type: getStateColor(app.appointment_state),
                     date: aDateStr,
                     appointment_date: finalStart,
                     end_date: finalEnd,
@@ -292,16 +304,29 @@ export class BookingCalendarService {
 
         const results = await query.getMany();
 
+        const getStateColor = (state: string) => {
+            const s = (state || '').toLowerCase().trim();
+            if (s === 'onthyfly') return 'gray';
+            if (['confirmed', 'confirm'].includes(s)) return 'teal';
+            if (s === 'arrived') return 'blue';
+            if (s === 'in_chair') return 'purple';
+            if (s === 'in_payment') return 'orange';
+            if (s === 'paid') return 'green';
+            if (s === 'closed') return 'pink';
+            return 'blue';
+        };
+
         return results.map((app) => ({
             id: app.id,
             docId: app.doctor_id,
             title: app.patient_name || app.english_name || 'No Name',
             time: app.appointment_date ? app.appointment_date.toTimeString().substring(0, 5) : '00:00',
-            duration: 60, // Default or calculated
-            type: app.appointment_state === 'confirmed' ? 'blue' : 'pink',
+            duration: 60,
+            type: getStateColor(app.appointment_state),
             date: app.appointment_date ? app.appointment_date.toISOString().substring(0, 10) : '',
         }));
     }
+
 
     async searchPatients(term: string) {
         const query = this.patientRepository.createQueryBuilder('patient')
@@ -718,12 +743,12 @@ export class BookingCalendarService {
                         lastName: appointment.patient?.last_name || appointment.last_name || '',
                         mobile: appointment.patient?.mobile || appointment.mobile || '',
                         nationalId: appointment.patient?.id_number || appointment.id_number || '',
-                        dob: appointment.patient?.date_of_birth ? new Date(appointment.patient.date_of_birth).toISOString().split('T')[0] : 
-                             appointment.date_of_birth ? new Date(appointment.date_of_birth).toISOString().split('T')[0] : '',
-                        gender: appointment.patient?.gender === 'male' ? 'Male' : 
-                               appointment.patient?.gender === 'female' ? 'Female' : 
-                               appointment.gender === 'male' ? 'Male' :
-                               appointment.gender === 'female' ? 'Female' : '',
+                        dob: appointment.patient?.date_of_birth ? new Date(appointment.patient.date_of_birth).toISOString().split('T')[0] :
+                            appointment.date_of_birth ? new Date(appointment.date_of_birth).toISOString().split('T')[0] : '',
+                        gender: appointment.patient?.gender === 'male' ? 'Male' :
+                            appointment.patient?.gender === 'female' ? 'Female' :
+                                appointment.gender === 'male' ? 'Male' :
+                                    appointment.gender === 'female' ? 'Female' : '',
                         age: appointment.patient?.age || appointment.age || '',
                         additionalPhone: appointment.additional_phone || ''
                     }
@@ -782,7 +807,7 @@ export class BookingCalendarService {
             appointment.doctor_id = doctorId || appointment.doctor_id;
             appointment.patient_name = patientName || appointment.patient_name;
             appointment.english_name = patientName || appointment.english_name;
-            
+
             // Update appointment fields from patient details if provided
             if (patientDetails) {
                 appointment.first_name = patientDetails.firstName || appointment.first_name;
@@ -795,7 +820,7 @@ export class BookingCalendarService {
                 appointment.age = patientDetails.age || appointment.age;
                 appointment.additional_phone = patientDetails.additionalPhone || appointment.additional_phone;
             }
-            
+
             appointment.appointment_date = toUTC(start);
             appointment.end_date = toUTC(end);
             appointment.search_date = toUTC(start);
