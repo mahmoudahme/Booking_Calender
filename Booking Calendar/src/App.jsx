@@ -25,6 +25,9 @@ function App() {
     const [isBooked, setIsBooked] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState(null);
+    const [selectedStates, setSelectedStates] = useState([
+        'onthyfly', 'confirmed', 'arrived', 'in_chair', 'in_payment', 'paid', 'closed'
+    ]);
 
     // Custom Hooks
     const { doctors, selectedDoctors, setSelectedDoctors } = useDoctors();
@@ -68,7 +71,7 @@ function App() {
         try {
             // Fetch full appointment details
             const fullAppointment = await bookingAPI.getAppointmentById(appointment.id);
-            
+
             console.log('Full appointment data:', fullAppointment);
             console.log('Patient details:', fullAppointment?.data?.patientDetails);
 
@@ -295,7 +298,7 @@ function App() {
                     selectedDate={selectedDate}
                     doctors={doctors}
                     selectedDoctors={selectedDoctors}
-                    appointments={appointments}
+                    appointments={appointments.filter(app => selectedStates.includes(app.state || app.type))}
                     doctorSlots={doctorSlots}
                     highlightedAppId={highlightedAppId}
                     dragState={dragState}
@@ -314,6 +317,8 @@ function App() {
                     doctors={doctors}
                     selectedDoctors={selectedDoctors}
                     setSelectedDoctors={setSelectedDoctors}
+                    selectedStates={selectedStates}
+                    setSelectedStates={setSelectedStates}
                 />
             </div>
 
