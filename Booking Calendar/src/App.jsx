@@ -283,23 +283,60 @@ function App() {
         }
     };
 
+    // Check if running without Odoo context
+    const hasValidContext = odooContext.isEmbedded && odooContext.user;
+
+    // Show access denied if no valid context
+    if (!odooContext.isLoading && !hasValidContext) {
+        return (
+            <div className="app-container" style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+                flexDirection: 'column',
+                gap: '16px'
+            }}>
+                <div style={{
+                    fontSize: '48px'
+                }}>🔒</div>
+                <h2 style={{ margin: 0, color: '#333' }}>Access Denied</h2>
+                <p style={{ margin: 0, color: '#666' }}>
+                    Please access this calendar from Odoo
+                </p>
+            </div>
+        );
+    }
+
+    // Show loading while checking context
+    if (odooContext.isLoading) {
+        return (
+            <div className="app-container" style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh'
+            }}>
+                <div>Loading...</div>
+            </div>
+        );
+    }
+
     return (
         <div className="app-container">
-            {/* Debug Banner - Remove after testing */}
-            {odooContext.isEmbedded && odooContext.user && (
-                <div style={{
-                    background: '#4CAF50',
-                    color: 'white',
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                }}>
-                    <span>👤 {odooContext.user.name} | 🏢 {odooContext.user.companyName}</span>
-                    <span style={{ opacity: 0.8 }}>Embedded Mode ✓</span>
-                </div>
-            )}
+            {/* User Banner */}
+            <div style={{
+                background: '#4CAF50',
+                color: 'white',
+                padding: '8px 16px',
+                fontSize: '14px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+            }}>
+                <span>👤 {odooContext.user.name} | 🏢 {odooContext.user.companyName}</span>
+                <span style={{ opacity: 0.8 }}>Embedded Mode</span>
+            </div>
             <Header
                 viewMode={viewMode}
                 setViewMode={setViewMode}
