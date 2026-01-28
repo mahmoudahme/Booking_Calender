@@ -5,6 +5,7 @@ import { useAppointments } from './hooks/useAppointments';
 import { useSearch } from './hooks/useSearch';
 import { useDragSelection } from './hooks/useDragSelection';
 import { useTheme } from './hooks/useTheme';
+import { useOdooContext } from './hooks/useOdooContext';
 import { timeToMinutes } from './utils/timeUtils';
 import { VIEW_MODES, DEFAULT_DURATION } from './constants';
 import bookingAPI from './services/api';
@@ -30,7 +31,17 @@ function App() {
     ]);
 
     // Custom Hooks
+    const odooContext = useOdooContext();
     const { doctors, selectedDoctors, setSelectedDoctors } = useDoctors();
+
+    // Debug: Log Odoo context
+    useEffect(() => {
+        console.log('🔗 Odoo Context:', odooContext);
+        if (odooContext.user) {
+            console.log('👤 User:', odooContext.user.name);
+            console.log('🏢 Company:', odooContext.user.companyName);
+        }
+    }, [odooContext]);
     const { appointments, doctorSlots, isRefreshing, refetch } = useAppointments(
         selectedDate,
         viewMode,
@@ -274,6 +285,21 @@ function App() {
 
     return (
         <div className="app-container">
+            {/* Debug Banner - Remove after testing */}
+            {odooContext.isEmbedded && odooContext.user && (
+                <div style={{
+                    background: '#4CAF50',
+                    color: 'white',
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}>
+                    <span>👤 {odooContext.user.name} | 🏢 {odooContext.user.companyName}</span>
+                    <span style={{ opacity: 0.8 }}>Embedded Mode ✓</span>
+                </div>
+            )}
             <Header
                 viewMode={viewMode}
                 setViewMode={setViewMode}
