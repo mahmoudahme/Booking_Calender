@@ -46,11 +46,6 @@ export class BookingCalendarService {
 
         // We use a broader query to catch UTC shifts
         const query = this.appointmentRepository.createQueryBuilder('app')
-            .leftJoinAndSelect('app.doctor', 'doctor')
-            .leftJoinAndSelect('doctor.partner', 'docPartner')
-            .leftJoinAndSelect('app.patient', 'patient')
-            .leftJoinAndSelect('patient.partner', 'patPartner')
-            .leftJoinAndSelect('app.subtime_rel', 'subtime') // Join to get slot time from Odoo
             .where('(app.appointment_date BETWEEN :start AND :end OR app.search_date BETWEEN :start AND :end OR app.create_date BETWEEN :start AND :end)', {
                 start: new Date(start.getTime() - 4 * 60 * 60 * 1000),
                 end: new Date(end.getTime() + 4 * 60 * 60 * 1000)
@@ -61,6 +56,13 @@ export class BookingCalendarService {
         }
 
         const appointments = await query.orderBy('app.id', 'DESC').getMany();
+
+        // Pre-fetch all slots for efficiency
+        const subtimeIds = appointments.map(app => app.subtime).filter(id => id !== null);
+        const slots = subtimeIds.length > 0
+            ? await this.subtimeRepository.find({ where: { id: In(subtimeIds) } })
+            : [];
+        const slotsMap = new Map(slots.map(s => [s.id, s]));
 
         const result = appointments
             .filter(app => !['cancel', 'cancelled'].includes(app.appointment_state || ''))
@@ -75,22 +77,25 @@ export class BookingCalendarService {
 
                 let finalStart = adjustDate(baseDate);
 
-                // CRITICAL FIX: If Odoo linked a specific slot (subtime), use its local time string!
-                if (app.subtime_rel && app.subtime_rel.subtime) {
-                    let timeStr = app.subtime_rel.subtime;
+                // If Odoo linked a specific slot (subtime), use its local time string
+                if (app.subtime) {
+                    const slot = slotsMap.get(app.subtime);
+                    if (slot && slot.subtime) {
+                        let timeStr = slot.subtime;
 
-                    // Simple parser for "09:00" or "09:00 Am"
-                    let [part1, part2] = timeStr.split(' ');
-                    let [h, m] = part1.split(':').map(Number);
+                        // Simple parser for "09:00" or "09:00 Am"
+                        let [part1, part2] = timeStr.split(' ');
+                        let [h, m] = part1.split(':').map(Number);
 
-                    if (part2) {
-                        const mode = part2.toLowerCase().trim();
-                        if (mode === 'pm' && h < 12) h += 12;
-                        if (mode === 'am' && h === 12) h = 0;
-                    }
+                        if (part2) {
+                            const mode = part2.toLowerCase().trim();
+                            if (mode === 'pm' && h < 12) h += 12;
+                            if (mode === 'am' && h === 12) h = 0;
+                        }
 
-                    if (!isNaN(h) && !isNaN(m)) {
-                        finalStart.setHours(h, m, 0, 0);
+                        if (!isNaN(h) && !isNaN(m)) {
+                            finalStart.setHours(h, m, 0, 0);
+                        }
                     }
                 }
 
@@ -109,8 +114,6 @@ export class BookingCalendarService {
 
                 const title = app.patient_name ||
                     app.english_name ||
-                    (app.patient && app.patient.english_name) ||
-                    (app.patient && app.patient.partner && app.patient.partner.name) ||
                     'No Name Patient';
 
                 const getStateColor = (state: string) => {
@@ -295,11 +298,8 @@ export class BookingCalendarService {
     async searchAppointments(term: string) {
         // Use QueryBuilder for advanced search across multiple fields
         const query = this.appointmentRepository.createQueryBuilder('app')
-            .leftJoinAndSelect('app.doctor', 'doctor')
-            .leftJoinAndSelect('doctor.partner', 'partner')
             .where('app.patient_name ILIKE :term', { term: `%${term}%` })
             .orWhere('app.english_name ILIKE :term', { term: `%${term}%` })
-            .orWhere('partner.name ILIKE :term', { term: `%${term}%` })
             .limit(10);
 
         const results = await query.getMany();
@@ -670,7 +670,6 @@ export class BookingCalendarService {
         try {
             const appointment = await this.appointmentRepository.findOne({
                 where: { id: appointmentId },
-                relations: ['doctor', 'doctor.partner', 'patient', 'patient.partner', 'subtime_rel'],
             });
 
             if (!appointment) {
@@ -690,19 +689,22 @@ export class BookingCalendarService {
             let finalStart = adjustDate(baseDate);
 
             // Parse slot time if available
-            if (appointment.subtime_rel && appointment.subtime_rel.subtime) {
-                let timeStr = appointment.subtime_rel.subtime;
-                let [part1, part2] = timeStr.split(' ');
-                let [h, m] = part1.split(':').map(Number);
+            if (appointment.subtime) {
+                const slot = await this.subtimeRepository.findOne({ where: { id: appointment.subtime } });
+                if (slot && slot.subtime) {
+                    let timeStr = slot.subtime;
+                    let [part1, part2] = timeStr.split(' ');
+                    let [h, m] = part1.split(':').map(Number);
 
-                if (part2) {
-                    const mode = part2.toLowerCase().trim();
-                    if (mode === 'pm' && h < 12) h += 12;
-                    if (mode === 'am' && h === 12) h = 0;
-                }
+                    if (part2) {
+                        const mode = part2.toLowerCase().trim();
+                        if (mode === 'pm' && h < 12) h += 12;
+                        if (mode === 'am' && h === 12) h = 0;
+                    }
 
-                if (!isNaN(h) && !isNaN(m)) {
-                    finalStart.setHours(h, m, 0, 0);
+                    if (!isNaN(h) && !isNaN(m)) {
+                        finalStart.setHours(h, m, 0, 0);
+                    }
                 }
             }
 
@@ -719,9 +721,13 @@ export class BookingCalendarService {
 
             const patientName = appointment.patient_name ||
                 appointment.english_name ||
-                (appointment.patient && appointment.patient.english_name) ||
-                (appointment.patient && appointment.patient.partner && appointment.patient.partner.name) ||
                 'No Name Patient';
+
+            // Fetch patient details if patient_id exists
+            let patient = null;
+            if (appointment.patient_id) {
+                patient = await this.patientRepository.findOne({ where: { id: appointment.patient_id } });
+            }
 
             return {
                 status: true,
@@ -738,19 +744,19 @@ export class BookingCalendarService {
                     notes: appointment.notes,
                     state: appointment.appointment_state,
                     patientDetails: {
-                        firstName: appointment.patient?.first_name || appointment.first_name || '',
-                        middleName: appointment.patient?.middle_name || appointment.middle_name || '',
-                        lastName: appointment.patient?.last_name || appointment.last_name || '',
-                        mobile: appointment.patient?.mobile || appointment.mobile || '',
-                        nationalId: appointment.patient?.id_number || appointment.id_number || '',
-                        dob: appointment.patient?.date_of_birth ? new Date(appointment.patient.date_of_birth).toISOString().split('T')[0] :
+                        firstName: patient?.first_name || '',
+                        middleName: patient?.middle_name || '',
+                        lastName: patient?.last_name || '',
+                        mobile: patient?.mobile || appointment.mobile || '',
+                        nationalId: patient?.id_number || appointment.id_number || '',
+                        dob: patient?.date_of_birth ? new Date(patient.date_of_birth).toISOString().split('T')[0] :
                             appointment.date_of_birth ? new Date(appointment.date_of_birth).toISOString().split('T')[0] : '',
-                        gender: appointment.patient?.gender === 'male' ? 'Male' :
-                            appointment.patient?.gender === 'female' ? 'Female' :
+                        gender: patient?.gender === 'male' ? 'Male' :
+                            patient?.gender === 'female' ? 'Female' :
                                 appointment.gender === 'male' ? 'Male' :
                                     appointment.gender === 'female' ? 'Female' : '',
-                        age: appointment.patient?.age || appointment.age || '',
-                        additionalPhone: appointment.additional_phone || ''
+                        age: patient?.age || appointment.age || '',
+                        additionalPhone: ''
                     }
                 },
             };
@@ -772,7 +778,6 @@ export class BookingCalendarService {
         try {
             const appointment = await this.appointmentRepository.findOne({
                 where: { id: appointmentId },
-                relations: ['patient'],
             });
 
             if (!appointment) {
@@ -786,17 +791,20 @@ export class BookingCalendarService {
             let { doctorId, patientName, date, time, duration, notes, patientId, slotIds, patientDetails } = data;
 
             // Update patient details if provided
-            if (appointment.patient && patientDetails) {
-                appointment.patient.first_name = patientDetails.firstName || appointment.patient.first_name;
-                appointment.patient.middle_name = patientDetails.middleName || appointment.patient.middle_name;
-                appointment.patient.last_name = patientDetails.lastName || appointment.patient.last_name;
-                appointment.patient.mobile = patientDetails.mobile || appointment.patient.mobile;
-                appointment.patient.id_number = patientDetails.nationalId || appointment.patient.id_number;
-                appointment.patient.date_of_birth = patientDetails.dob || appointment.patient.date_of_birth;
-                appointment.patient.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : appointment.patient.gender;
-                appointment.patient.age = patientDetails.age || appointment.patient.age;
-                appointment.patient.english_name = patientName || appointment.patient.english_name;
-                await this.patientRepository.save(appointment.patient);
+            if (appointment.patient_id && patientDetails) {
+                const patient = await this.patientRepository.findOne({ where: { id: appointment.patient_id } });
+                if (patient) {
+                    patient.first_name = patientDetails.firstName || patient.first_name;
+                    patient.middle_name = patientDetails.middleName || patient.middle_name;
+                    patient.last_name = patientDetails.lastName || patient.last_name;
+                    patient.mobile = patientDetails.mobile || patient.mobile;
+                    patient.id_number = patientDetails.nationalId || patient.id_number;
+                    patient.date_of_birth = patientDetails.dob || patient.date_of_birth;
+                    patient.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : patient.gender;
+                    patient.age = patientDetails.age || patient.age;
+                    patient.english_name = patientName || patient.english_name;
+                    await this.patientRepository.save(patient);
+                }
             }
 
             // Update appointment fields
@@ -808,17 +816,13 @@ export class BookingCalendarService {
             appointment.patient_name = patientName || appointment.patient_name;
             appointment.english_name = patientName || appointment.english_name;
 
-            // Update appointment fields from patient details if provided
+            // Update basic appointment fields if provided
             if (patientDetails) {
-                appointment.first_name = patientDetails.firstName || appointment.first_name;
-                appointment.middle_name = patientDetails.middleName || appointment.middle_name;
-                appointment.last_name = patientDetails.lastName || appointment.last_name;
                 appointment.mobile = patientDetails.mobile || appointment.mobile;
                 appointment.id_number = patientDetails.nationalId || appointment.id_number;
                 appointment.date_of_birth = patientDetails.dob || appointment.date_of_birth;
                 appointment.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : appointment.gender;
                 appointment.age = patientDetails.age || appointment.age;
-                appointment.additional_phone = patientDetails.additionalPhone || appointment.additional_phone;
             }
 
             appointment.appointment_date = toUTC(start);

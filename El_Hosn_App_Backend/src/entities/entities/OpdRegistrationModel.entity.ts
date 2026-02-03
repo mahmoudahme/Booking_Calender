@@ -1,8 +1,4 @@
-import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { PatientModel } from './PatientModel.entity';
-import { DoctorModel } from './DoctorModel.entity';
-import { SubtimeModel } from './SubtimeModel.entity';
-import { ResCountry } from './ResCountry.entity';
+import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('opd_registration_model', { schema: 'public' })
 export class OpdRegistrationModel {
@@ -12,26 +8,14 @@ export class OpdRegistrationModel {
   @Column({ nullable: true })
   patient_id!: number | null;
 
-  @ManyToOne(() => PatientModel)
-  @JoinColumn({ name: 'patient_id' })
-  patient!: PatientModel;
-
   @Column({ nullable: true })
   age!: number | null;
 
   @Column({ nullable: true })
   doctor_id!: number | null;
 
-  @ManyToOne(() => DoctorModel)
-  @JoinColumn({ name: 'doctor_id' })
-  doctor!: DoctorModel;
-
   @Column({ nullable: true })
   subtime!: number | null;
-
-  @ManyToOne(() => SubtimeModel)
-  @JoinColumn({ name: 'subtime' })
-  subtime_rel!: SubtimeModel;
 
   @Column({ nullable: true })
   computed_sequence!: number | null;
@@ -50,10 +34,6 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   patient_nationality!: number | null;
-
-  @ManyToOne(() => ResCountry)
-  @JoinColumn({ name: 'patient_nationality' })
-  patientNationality!: ResCountry;
 
   @Column({ nullable: true })
   cityy!: number | null;
@@ -165,18 +145,6 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   payment_way!: string | null;
-
-  @Column({ nullable: true })
-  first_name!: string | null;
-
-  @Column({ nullable: true })
-  middle_name!: string | null;
-
-  @Column({ nullable: true })
-  last_name!: string | null;
-
-  @Column({ nullable: true })
-  additional_phone!: string | null;
 
   @Column({ nullable: true })
   nok_first_name!: string | null;
@@ -330,5 +298,35 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   charge!: number | null;
+
+  @Column({ nullable: true })
+  payment_amount!: number | null;
+
+  @Column({ nullable: true })
+  nurse_id!: number | null;
+
+  @Column({ nullable: true })
+  nationality!: number | null;
+
+  @Column({ nullable: true })
+  deposit_invoice_id!: number | null;
+
+  @Column({ nullable: true })
+  deposit_group_id!: number | null;
+
+  @Column({ nullable: true })
+  is_deposit_registration!: boolean | null;
+
+  @Column({ nullable: true })
+  prescription_template_id!: number | null;
+
+  @Column({ nullable: true })
+  name!: string | null;
+
+  @Column({ nullable: true })
+  phone_country_code!: string | null;
+
+  @Column({ nullable: true })
+  phone_number!: string | null;
 
 }
