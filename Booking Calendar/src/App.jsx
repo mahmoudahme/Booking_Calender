@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { format, addDays } from 'date-fns';
 import { useDoctors } from './hooks/useDoctors';
 import { useAppointments } from './hooks/useAppointments';
@@ -13,6 +13,7 @@ import Header from './components/Header/Header';
 import CalendarView from './components/Calendar/CalendarView';
 import Sidebar from './components/Sidebar/Sidebar';
 import AppointmentModal from './components/Appointment/AppointmentModal';
+import Dashboard from './components/Dashboard/Dashboard';
 import './index.css';
 
 function App() {
@@ -183,19 +184,16 @@ function App() {
         e.preventDefault();
         const formData = new FormData(e.target);
 
-        // Extract patient details
+        // Extract patient details (matching OpdRegistrationModel - camelCase)
         const firstName = formData.get('firstName');
         const middleName = formData.get('middleName');
         const lastName = formData.get('lastName');
 
-        // Construct full name if fields exist, otherwise might be coming from search selection state (handled via hidden inputs if we were strictly using form submit, but here we can rely on state or just combine fields)
+        // Construct full name (patientName for OpdRegistrationModel)
         let patientName = '';
-        if (firstName && lastName) {
-            patientName = `${firstName} ${middleName ? middleName + ' ' : ''}${lastName}`;
+        if (firstName) {
+            patientName = `${firstName}${middleName ? ' ' + middleName : ''}${lastName ? ' ' + lastName : ''}`.trim();
         } else {
-            // If manual search/select was used without filling breakdown, you might need to handle that. 
-            // But the new form encourages filling details. 
-            // For safety, let's look for a direct patientName input if it exists (for backward compatibility w/ old modal)
             patientName = formData.get('patientName') || '';
         }
 
@@ -232,9 +230,9 @@ function App() {
         try {
             const appointmentData = {
                 doctorId: selectedSlot.doctor.id,
-                patientName, // Full name
+                patientName, // Full name (for OpdRegistrationModel)
                 patientId: patientId ? parseInt(patientId) : null,
-                patientDetails: { // Send detailed info if backend supports it
+                patientDetails: { // Send detailed info (matching OpdRegistrationModel)
                     firstName,
                     middleName,
                     lastName,
@@ -356,33 +354,43 @@ function App() {
             />
 
             <div className="booking-layout">
-                <CalendarView
-                    viewMode={viewMode}
-                    selectedDate={selectedDate}
-                    doctors={doctors}
-                    selectedDoctors={selectedDoctors}
-                    appointments={appointments.filter(app => selectedStates.includes(app.state || app.type))}
-                    doctorSlots={doctorSlots}
-                    highlightedAppId={highlightedAppId}
-                    dragState={dragState}
-                    selectedSlot={selectedSlot}
-                    selectedDuration={selectedDuration}
-                    showModal={showModal}
-                    onDragStart={dragState.startDrag}
-                    onDragUpdate={dragState.updateDrag}
-                    onAppointmentClick={handleAppointmentClick}
-                />
+                {viewMode === VIEW_MODES.DASHBOARD ? (
+                    <Dashboard
+                        appointments={appointments}
+                        doctors={doctors}
+                        selectedDate={selectedDate}
+                    />
+                ) : (
+                    <>
+                        <CalendarView
+                            viewMode={viewMode}
+                            selectedDate={selectedDate}
+                            doctors={doctors}
+                            selectedDoctors={selectedDoctors}
+                            appointments={appointments.filter(app => selectedStates.includes(app.state || app.type))}
+                            doctorSlots={doctorSlots}
+                            highlightedAppId={highlightedAppId}
+                            dragState={dragState}
+                            selectedSlot={selectedSlot}
+                            selectedDuration={selectedDuration}
+                            showModal={showModal}
+                            onDragStart={dragState.startDrag}
+                            onDragUpdate={dragState.updateDrag}
+                            onAppointmentClick={handleAppointmentClick}
+                        />
 
-                <Sidebar
-                    isOpen={isSidebarOpen}
-                    selectedDate={selectedDate}
-                    onDateChange={setSelectedDate}
-                    doctors={doctors}
-                    selectedDoctors={selectedDoctors}
-                    setSelectedDoctors={setSelectedDoctors}
-                    selectedStates={selectedStates}
-                    setSelectedStates={setSelectedStates}
-                />
+                        <Sidebar
+                            isOpen={isSidebarOpen}
+                            selectedDate={selectedDate}
+                            onDateChange={setSelectedDate}
+                            doctors={doctors}
+                            selectedDoctors={selectedDoctors}
+                            setSelectedDoctors={setSelectedDoctors}
+                            selectedStates={selectedStates}
+                            setSelectedStates={setSelectedStates}
+                        />
+                    </>
+                )}
             </div>
 
             <AppointmentModal

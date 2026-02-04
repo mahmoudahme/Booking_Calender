@@ -17,7 +17,37 @@ export const HOURS = (() => {
 // View Modes
 export const VIEW_MODES = {
     DAY: 'day',
-    WEEK: 'week'
+    WEEK: 'week',
+    DASHBOARD: 'dashboard'
+};
+
+// Dashboard Periods
+export const DASHBOARD_PERIODS = {
+    TODAY: 'today',
+    WEEK: 'week',
+    MONTH: 'month'
+};
+
+// Status Colors for Charts (matching appointment colors)
+export const STATUS_COLORS = {
+    onthyfly: { light: '#4b5563', dark: '#9ca3af' },
+    confirmed: { light: '#1fa391', dark: '#20c9a6' },
+    arrived: { light: '#1877f2', dark: '#5ba3ff' },
+    in_chair: { light: '#7c3aed', dark: '#a78bfa' },
+    in_payment: { light: '#ea580c', dark: '#fb923c' },
+    paid: { light: '#0da35d', dark: '#4ade80' },
+    closed: { light: '#f02849', dark: '#ff6b8a' }
+};
+
+// Status Labels
+export const STATUS_LABELS = {
+    onthyfly: 'On The Fly',
+    confirmed: 'Confirmed',
+    arrived: 'Arrived',
+    in_chair: 'In Chair',
+    in_payment: 'In Payment',
+    paid: 'Paid',
+    closed: 'Closed'
 };
 
 // Default Values

@@ -25,7 +25,7 @@ const AppointmentModal = ({
     const [searchResults, setSearchResults] = useState([]); // State for search results
     const [notes, setNotes] = useState('');
 
-    // Controlled Form State
+    // Controlled Form State (matching Backend API - camelCase)
     const [patientData, setPatientData] = useState({
         firstName: '',
         middleName: '',
@@ -41,7 +41,7 @@ const AppointmentModal = ({
     // Load appointment data in edit mode
     useEffect(() => {
         if (editMode && editingAppointment) {
-            // Set patient data
+            // Set patient data (matching Backend API)
             setPatientData({
                 firstName: editingAppointment.patientDetails?.firstName || '',
                 middleName: editingAppointment.patientDetails?.middleName || '',
@@ -104,6 +104,7 @@ const AppointmentModal = ({
     const handlePatientSelect = (patient) => {
         setSelectedPatient(patient);
         setSearchTerm(patient.name);
+        // Map from Backend API response (camelCase)
         setPatientData({
             firstName: patient.firstName || '',
             middleName: patient.middleName || '',
@@ -125,21 +126,21 @@ const AppointmentModal = ({
                 ...prev,
                 [name]: value
             };
-            
-            // Auto-update search term (patient name) when name fields change
+
+            // Auto-update search term (patientName) when name fields change
             if (name === 'firstName' || name === 'middleName' || name === 'lastName') {
                 const fullName = `${newData.firstName || ''} ${newData.middleName || ''} ${newData.lastName || ''}`.trim().replace(/\s+/g, ' ');
                 setSearchTerm(fullName);
             }
-            
+
             return newData;
         });
     };
 
-    // Calculate Age from DOB
+    // Calculate Age from dob
     const handleDobChange = (e) => {
         const dob = e.target.value;
-        setPatientData(prev => ({ ...prev, dob })); // Update state
+        setPatientData(prev => ({ ...prev, dob }));
 
         if (dob) {
             const birthDate = new Date(dob);
@@ -149,14 +150,14 @@ const AppointmentModal = ({
             if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
                 age--;
             }
-            setPatientData(prev => ({ ...prev, dob, age }));
+            setPatientData(prev => ({ ...prev, dob, age: age.toString() }));
         }
     };
 
-    // Calculate DOB from Age (Approximate)
+    // Calculate dob from Age (Approximate)
     const handleAgeChange = (e) => {
         const age = e.target.value;
-        setPatientData(prev => ({ ...prev, age })); // Update state
+        setPatientData(prev => ({ ...prev, age }));
 
         const ageNum = parseInt(age);
         if (ageNum && !isNaN(ageNum)) {
