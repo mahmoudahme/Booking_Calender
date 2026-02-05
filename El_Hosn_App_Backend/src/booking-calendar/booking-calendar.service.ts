@@ -7,6 +7,7 @@ import { ResPartner } from '../entities/entities/ResPartner.entity';
 import { DoctorSpecialityModel } from '../entities/entities/DoctorSpecialityModel.entity';
 import { PatientModel } from '../entities/entities/PatientModel.entity';
 import { SubtimeModel } from '../entities/entities/SubtimeModel.entity';
+import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
 
 @Injectable()
 export class BookingCalendarService {
@@ -179,7 +180,7 @@ export class BookingCalendarService {
         return uniqueSlots;
     }
 
-    async createAppointment(data: any) {
+    async createAppointment(data: CreateAppointmentDto) {
         let { doctorId, patientName, date, time, duration, notes, patientId, slotIds, patientDetails } = data;
         const start = new Date(`${date}T${time}`);
         const slotCount = Math.max(1, Math.floor(duration / 15));
@@ -199,7 +200,7 @@ export class BookingCalendarService {
                 patient.id_number = patientDetails.nationalId || patient.id_number;
                 patient.date_of_birth = patientDetails?.dob ? new Date(patientDetails.dob) : patient.date_of_birth;
                 patient.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : patient.gender;
-                patient.age = patientDetails?.age ? parseInt(patientDetails.age) : patient.age;
+                patient.age = patientDetails?.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : patient.age;
                 patient.english_name = patientName || patient.english_name;
                 await this.patientRepository.save(patient);
             }
@@ -232,7 +233,7 @@ export class BookingCalendarService {
                 id_number: patientDetails?.nationalId,
                 date_of_birth: patientDetails?.dob ? new Date(patientDetails.dob) : null,
                 gender: patientDetails?.gender ? patientDetails.gender.toLowerCase() : null,
-                age: patientDetails?.age ? parseInt(patientDetails.age) : null,
+                age: patientDetails?.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : null,
                 mrn: `MRN-${Math.floor(100000 + Math.random() * 900000)}`,
                 create_date: new Date(),
                 write_date: new Date(),
@@ -252,9 +253,6 @@ export class BookingCalendarService {
             // Precise linking: If user sent slotIds array, use the specific ID for this chunk
             if (slotIds && slotIds[i]) {
                 slot = await this.subtimeRepository.findOne({ where: { id: slotIds[i] } });
-            } else if (i === 0 && data.slotId) {
-                // Backward compatibility for single slotId
-                slot = await this.subtimeRepository.findOne({ where: { id: data.slotId } });
             }
 
             if (!slot) {
@@ -774,7 +772,7 @@ export class BookingCalendarService {
     /**
      * Update an existing appointment
      */
-    async updateAppointment(appointmentId: number, data: any) {
+    async updateAppointment(appointmentId: number, data: UpdateAppointmentDto) {
         try {
             const appointment = await this.appointmentRepository.findOne({
                 where: { id: appointmentId },
@@ -799,9 +797,9 @@ export class BookingCalendarService {
                     patient.last_name = patientDetails.lastName || patient.last_name;
                     patient.mobile = patientDetails.mobile || patient.mobile;
                     patient.id_number = patientDetails.nationalId || patient.id_number;
-                    patient.date_of_birth = patientDetails.dob || patient.date_of_birth;
+                    patient.date_of_birth = patientDetails.dob ? new Date(patientDetails.dob) : patient.date_of_birth;
                     patient.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : patient.gender;
-                    patient.age = patientDetails.age || patient.age;
+                    patient.age = patientDetails.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : patient.age;
                     patient.english_name = patientName || patient.english_name;
                     await this.patientRepository.save(patient);
                 }
@@ -820,9 +818,9 @@ export class BookingCalendarService {
             if (patientDetails) {
                 appointment.mobile = patientDetails.mobile || appointment.mobile;
                 appointment.id_number = patientDetails.nationalId || appointment.id_number;
-                appointment.date_of_birth = patientDetails.dob || appointment.date_of_birth;
+                appointment.date_of_birth = patientDetails.dob ? new Date(patientDetails.dob) : appointment.date_of_birth;
                 appointment.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : appointment.gender;
-                appointment.age = patientDetails.age || appointment.age;
+                appointment.age = patientDetails.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : appointment.age;
             }
 
             appointment.appointment_date = toUTC(start);

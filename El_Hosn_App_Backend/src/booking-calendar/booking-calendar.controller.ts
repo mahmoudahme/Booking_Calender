@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Query, Param } from '@nestjs/common';
 import { BookingCalendarService } from './booking-calendar.service';
+import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
 
 @Controller('api/v1/booking-calendar')
 export class BookingCalendarController {
@@ -38,7 +39,7 @@ export class BookingCalendarController {
     }
 
     @Post('appointments')
-    async createAppointment(@Body() data: any) {
+    async createAppointment(@Body() data: CreateAppointmentDto) {
         return this.bookingCalendarService.createAppointment(data);
     }
 
@@ -88,7 +89,7 @@ export class BookingCalendarController {
     }
 
     @Put('appointments/:id')
-    async updateAppointment(@Param('id') id: string, @Body() data: any) {
+    async updateAppointment(@Param('id') id: string, @Body() data: UpdateAppointmentDto) {
         return this.bookingCalendarService.updateAppointment(parseInt(id), data);
     }
 
