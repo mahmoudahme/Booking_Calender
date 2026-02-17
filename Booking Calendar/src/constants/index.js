@@ -2,7 +2,7 @@
 export const API_BASE_URL = 'http://72.62.16.223:3000/api/v1/booking-calendar';
 
 // Time Configuration
-export const HOURS = (() => {
+export const HOURS = (() => { 
     const hours = [];
     for (let h = 9; h <= 21; h++) {
         ['00', '15', '30', '45'].forEach(m => {

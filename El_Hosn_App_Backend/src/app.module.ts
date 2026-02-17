@@ -8,6 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { getDatabaseConfig } from '../config/database.config';
 import { BookingCalendarModule } from './booking-calendar/booking-calendar.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -50,6 +51,7 @@ function getI18nPath(): string {
     }),
 
     BookingCalendarModule,
+    DashboardModule,
   ],
   providers: [
     {
