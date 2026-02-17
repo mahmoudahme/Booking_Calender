@@ -57,18 +57,6 @@ export class OpdRegistrationModel {
   admitting_doctor_id!: number | null;
 
   @Column({ nullable: true })
-  bed_type_id!: number | null;
-
-  @Column({ nullable: true })
-  ward_id!: number | null;
-
-  @Column({ nullable: true })
-  transferred_from!: number | null;
-
-  @Column({ nullable: true })
-  beds_available!: number | null;
-
-  @Column({ nullable: true })
   invoice!: number | null;
 
   @Column({ nullable: true })
@@ -328,5 +316,11 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   phone_number!: string | null;
+
+  @Column({ nullable: true })
+  search_national_id!: number | null;
+
+  @Column({ nullable: true })
+  search_mobile!: number | null;
 
 }

@@ -40,121 +40,143 @@ export class BookingCalendarService {
     }
 
     async getAppointments(startDate: Date, endDate: Date, doctorIds?: number[]) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        try {
+            const start = new Date(startDate);
+            if (isNaN(start.getTime())) {
+                throw new Error('Invalid start date');
+            }
+            start.setHours(0, 0, 0, 0);
 
-        // We use a broader query to catch UTC shifts
-        const query = this.appointmentRepository.createQueryBuilder('app')
-            .where('(app.appointment_date BETWEEN :start AND :end OR app.search_date BETWEEN :start AND :end OR app.create_date BETWEEN :start AND :end)', {
-                start: new Date(start.getTime() - 4 * 60 * 60 * 1000),
-                end: new Date(end.getTime() + 4 * 60 * 60 * 1000)
-            });
+            const end = new Date(endDate);
+            if (isNaN(end.getTime())) {
+                throw new Error('Invalid end date');
+            }
+            end.setHours(23, 59, 59, 999);
 
-        if (doctorIds && doctorIds.length > 0) {
-            query.andWhere('app.doctor_id IN (:...ids)', { ids: doctorIds });
-        }
+            // We use a broader query to catch UTC shifts
+            const query = this.appointmentRepository.createQueryBuilder('app')
+                .where('(app.appointment_date BETWEEN :start AND :end OR app.search_date BETWEEN :start AND :end OR app.create_date BETWEEN :start AND :end)', {
+                    start: new Date(start.getTime() - 4 * 60 * 60 * 1000),
+                    end: new Date(end.getTime() + 4 * 60 * 60 * 1000)
+                });
 
-        const appointments = await query.orderBy('app.id', 'DESC').getMany();
+            if (doctorIds && doctorIds.length > 0) {
+                query.andWhere('app.doctor_id IN (:...ids)', { ids: doctorIds });
+            }
 
-        // Pre-fetch all slots for efficiency
-        const subtimeIds = appointments.map(app => app.subtime).filter(id => id !== null);
-        const slots = subtimeIds.length > 0
-            ? await this.subtimeRepository.find({ where: { id: In(subtimeIds) } })
-            : [];
-        const slotsMap = new Map(slots.map(s => [s.id, s]));
+            const appointments = await query.orderBy('app.id', 'DESC').getMany();
 
-        const result = appointments
-            .filter(app => !['cancel', 'cancelled'].includes(app.appointment_state || ''))
-            .map((app) => {
-                const adjustDate = (d: Date | null) => {
-                    if (!d) return null;
-                    return new Date(d); // Browser/Node will handle local offset
-                };
+            // Pre-fetch all slots for efficiency
+            const subtimeIds = appointments.map(app => app.subtime).filter(id => id !== null);
+            const slots = subtimeIds.length > 0
+                ? await this.subtimeRepository.find({ where: { id: In(subtimeIds) } })
+                : [];
+            const slotsMap = new Map(slots.map(s => [s.id, s]));
 
-                const baseDate = app.appointment_date || app.search_date || app.create_date;
-                if (!baseDate) return null;
+            const result = appointments
+                .filter(app => !['cancel', 'cancelled'].includes(app.appointment_state || ''))
+                .map((app) => {
+                    const adjustDate = (d: Date | null) => {
+                        if (!d) return null;
+                        return new Date(d); // Browser/Node will handle local offset
+                    };
 
-                let finalStart = adjustDate(baseDate);
+                    const baseDate = app.appointment_date || app.search_date || app.create_date;
+                    if (!baseDate) return null;
 
-                // If Odoo linked a specific slot (subtime), use its local time string
-                if (app.subtime) {
-                    const slot = slotsMap.get(app.subtime);
-                    if (slot && slot.subtime) {
-                        let timeStr = slot.subtime;
+                    let finalStart = adjustDate(baseDate);
 
-                        // Simple parser for "09:00" or "09:00 Am"
-                        let [part1, part2] = timeStr.split(' ');
-                        let [h, m] = part1.split(':').map(Number);
+                    // If Odoo linked a specific slot (subtime), use its local time string
+                    if (app.subtime) {
+                        const slot = slotsMap.get(app.subtime);
+                        if (slot && slot.subtime) {
+                            let timeStr = slot.subtime;
 
-                        if (part2) {
-                            const mode = part2.toLowerCase().trim();
-                            if (mode === 'pm' && h < 12) h += 12;
-                            if (mode === 'am' && h === 12) h = 0;
-                        }
+                            // Simple parser for "09:00" or "09:00 Am"
+                            let [part1, part2] = timeStr.split(' ');
+                            if (part1) {
+                                let parts = part1.split(':');
+                                if (parts.length >= 2) {
+                                    let h = parseInt(parts[0]);
+                                    let m = parseInt(parts[1]);
 
-                        if (!isNaN(h) && !isNaN(m)) {
-                            finalStart.setHours(h, m, 0, 0);
+                                    if (part2) {
+                                        const mode = part2.toLowerCase().trim();
+                                        if (mode === 'pm' && h < 12) h += 12;
+                                        if (mode === 'am' && h === 12) h = 0;
+                                    }
+
+                                    if (!isNaN(h) && !isNaN(m)) {
+                                        finalStart.setHours(h, m, 0, 0);
+                                    }
+                                }
+                            }
                         }
                     }
+
+                    // Calculate duration: default to 15m or use stored end_date
+                    let durationMinutes = 15;
+                    if (app.appointment_date && app.end_date) {
+                        durationMinutes = Math.floor((new Date(app.end_date).getTime() - new Date(app.appointment_date).getTime()) / 60000);
+                    }
+
+                    const finalEnd = new Date(finalStart.getTime() + durationMinutes * 60000);
+
+                    const ay = finalStart.getFullYear();
+                    const am = String(finalStart.getMonth() + 1).padStart(2, '0');
+                    const ad = String(finalStart.getDate()).padStart(2, '0');
+                    const aDateStr = `${ay}-${am}-${ad}`;
+
+                    const title = app.patient_name ||
+                        app.english_name ||
+                        'No Name Patient';
+
+                    const getStateColor = (state: string) => {
+                        const s = (state || '').toLowerCase().trim();
+                        if (s === 'onthyfly') return 'gray';
+                        if (['confirmed', 'confirm'].includes(s)) return 'teal';
+                        if (s === 'arrived') return 'blue';
+                        if (s === 'in_chair') return 'purple';
+                        if (s === 'in_payment') return 'orange';
+                        if (s === 'paid') return 'green';
+                        if (s === 'closed') return 'pink';
+                        return 'blue'; // Default
+                    };
+
+                    return {
+                        id: app.id,
+                        docId: app.doctor_id,
+                        title: title,
+                        time: finalStart.toTimeString().substring(0, 5), // Local time string
+                        duration: durationMinutes || 15,
+                        type: getStateColor(app.appointment_state),
+                        date: aDateStr,
+                        appointment_date: finalStart,
+                        end_date: finalEnd,
+                        state: app.appointment_state
+                    };
+                }).filter(item => item !== null);
+
+            // Precise filtering
+            const filtered = result.filter(a => {
+                const aDayStr = a.date;
+                const targetDayStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+
+                // If the range is exactly one day
+                const diffMs = end.getTime() - start.getTime();
+                if (diffMs <= 24 * 60 * 60 * 1000) {
+                    return aDayStr === targetDayStr;
                 }
 
-                // Calculate duration: default to 15m or use stored end_date
-                let durationMinutes = 15;
-                if (app.appointment_date && app.end_date) {
-                    durationMinutes = Math.floor((new Date(app.end_date).getTime() - new Date(app.appointment_date).getTime()) / 60000);
-                }
+                const aDay = new Date(aDayStr);
+                return aDay >= start && aDay <= end;
+            });
 
-                const finalEnd = new Date(finalStart.getTime() + durationMinutes * 60000);
-
-                const ay = finalStart.getFullYear();
-                const am = String(finalStart.getMonth() + 1).padStart(2, '0');
-                const ad = String(finalStart.getDate()).padStart(2, '0');
-                const aDateStr = `${ay}-${am}-${ad}`;
-
-                const title = app.patient_name ||
-                    app.english_name ||
-                    'No Name Patient';
-
-                const getStateColor = (state: string) => {
-                    const s = (state || '').toLowerCase().trim();
-                    if (s === 'onthyfly') return 'gray';
-                    if (['confirmed', 'confirm'].includes(s)) return 'teal';
-                    if (s === 'arrived') return 'blue';
-                    if (s === 'in_chair') return 'purple';
-                    if (s === 'in_payment') return 'orange';
-                    if (s === 'paid') return 'green';
-                    if (s === 'closed') return 'pink';
-                    return 'blue'; // Default
-                };
-
-                return {
-                    id: app.id,
-                    docId: app.doctor_id,
-                    title: title,
-                    time: finalStart.toTimeString().substring(0, 5), // Local time string
-                    duration: 15,
-                    type: getStateColor(app.appointment_state),
-                    date: aDateStr,
-                    appointment_date: finalStart,
-                    end_date: finalEnd,
-                    state: app.appointment_state
-                };
-            }).filter(item => item !== null);
-
-        // Precise filtering
-        const filtered = result.filter(a => {
-            const aDayStr = a.date;
-            const targetDayStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
-            if (start.getTime() === end.getTime() - (24 * 60 * 60 * 1000 - 1)) {
-                return aDayStr === targetDayStr;
-            }
-            const aDay = new Date(aDayStr);
-            return aDay >= start && aDay <= end;
-        });
-
-        return { appointments: filtered };
+            return { appointments: filtered };
+        } catch (error) {
+            console.error('Error in getAppointments:', error);
+            throw error;
+        }
     }
 
     async getSlots(doctorId: number, dayName: string) {
@@ -328,7 +350,7 @@ export class BookingCalendarService {
 
     async searchPatients(term: string) {
         const query = this.patientRepository.createQueryBuilder('patient')
-            .leftJoinAndSelect('patient.partner', 'partner');
+            .leftJoinAndMapOne('patient.partner', ResPartner, 'partner', 'partner.id = patient.partner_id');
 
         if (term && term.trim() !== '') {
             query.where(new Brackets(qb => {
@@ -346,7 +368,7 @@ export class BookingCalendarService {
 
         const patients = await query.getMany();
 
-        return patients.map(p => ({
+        return patients.map((p: any) => ({
             id: p.id,
             firstName: p.first_name || p.partner?.name?.split(' ')[0] || '',
             middleName: p.middle_name || '',
@@ -592,6 +614,9 @@ export class BookingCalendarService {
     async getDoctorSchedule(doctorId: number | null, date: string) {
         try {
             const dateObj = new Date(date);
+            if (isNaN(dateObj.getTime())) {
+                throw new Error('Invalid date provided');
+            }
             const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayName = dayNames[dateObj.getDay()];
 
@@ -618,7 +643,10 @@ export class BookingCalendarService {
                 const bookedSlots = await this.appointmentRepository.find({
                     where: {
                         doctor_id: docId,
-                        search_date: new Date(date),
+                        search_date: Between(
+                            new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 0, 0, 0),
+                            new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 23, 59, 59)
+                        ),
                         appointment_state: Not(In(['cancel', 'cancelled']))
                     },
                     select: ['subtime'],
@@ -633,31 +661,19 @@ export class BookingCalendarService {
                     available: !bookedSlotIds.has(slot.id),
                 }));
 
-                // If single doctor, we can keep backward compat or just use the map structure.
-                // To support "Get All", the map structure { [docId]: slots } is best.
                 schedules[docId] = slotsWithBookingStatus;
             }
 
-            // If a specific doctor was requested, we can return just the slots to match previous expectations,
-            // OR we always return the map. For consistency with "Bulk", let's return the map (or handle in frontend).
-            // Actually, to make frontend easy: let's return { schedules: { 47: [...], 48: [...] } }
-
             return {
-                status: true,
-                statusCode: 200,
+                success: true,
                 message: 'DATA_RETRIEVED_SUCCESS',
                 data: {
-                    schedules: schedules // Map of DoctorID -> Slots
+                    schedules: schedules
                 },
             };
         } catch (error) {
             console.error("Error fetching schedule:", error);
-            return {
-                status: false,
-                statusCode: 500,
-                message: 'FAILED_TO_FETCH_DATA',
-                error: error.message,
-            };
+            throw error; // Let the filter handle it
         }
     }
 
@@ -671,11 +687,7 @@ export class BookingCalendarService {
             });
 
             if (!appointment) {
-                return {
-                    status: false,
-                    statusCode: 404,
-                    message: 'APPOINTMENT_NOT_FOUND',
-                };
+                throw new Error('APPOINTMENT_NOT_FOUND');
             }
 
             const adjustDate = (d: Date | null) => {
@@ -728,8 +740,7 @@ export class BookingCalendarService {
             }
 
             return {
-                status: true,
-                statusCode: 200,
+                success: true,
                 message: 'APPOINTMENT_RETRIEVED_SUCCESS',
                 data: {
                     id: appointment.id,
@@ -760,12 +771,7 @@ export class BookingCalendarService {
             };
         } catch (error) {
             console.error('Error fetching appointment by ID:', error);
-            return {
-                status: false,
-                statusCode: 500,
-                message: 'FAILED_TO_FETCH_APPOINTMENT',
-                error: error.message,
-            };
+            throw error;
         }
     }
 
@@ -779,11 +785,7 @@ export class BookingCalendarService {
             });
 
             if (!appointment) {
-                return {
-                    status: false,
-                    statusCode: 404,
-                    message: 'APPOINTMENT_NOT_FOUND',
-                };
+                throw new Error('APPOINTMENT_NOT_FOUND');
             }
 
             let { doctorId, patientName, date, time, duration, notes, patientId, slotIds, patientDetails } = data;
@@ -840,19 +842,13 @@ export class BookingCalendarService {
             await this.appointmentRepository.save(appointment);
 
             return {
-                status: true,
-                statusCode: 200,
+                success: true,
                 message: 'APPOINTMENT_UPDATED_SUCCESS',
                 data: appointment,
             };
         } catch (error) {
             console.error('Error updating appointment:', error);
-            return {
-                status: false,
-                statusCode: 500,
-                message: 'FAILED_TO_UPDATE_APPOINTMENT',
-                error: error.message,
-            };
+            throw error;
         }
     }
 
@@ -866,29 +862,18 @@ export class BookingCalendarService {
             });
 
             if (!appointment) {
-                return {
-                    status: false,
-                    statusCode: 404,
-                    message: 'APPOINTMENT_NOT_FOUND',
-                };
+                throw new Error('APPOINTMENT_NOT_FOUND');
             }
-
             // Hard Delete as requested: Remove the record completely
             await this.appointmentRepository.delete(appointmentId);
 
             return {
-                status: true,
-                statusCode: 200,
+                success: true,
                 message: 'APPOINTMENT_DELETED_SUCCESS',
             };
         } catch (error) {
             console.error('Error deleting appointment:', error);
-            return {
-                status: false,
-                statusCode: 500,
-                message: 'FAILED_TO_DELETE_APPOINTMENT',
-                error: error.message,
-            };
+            throw error;
         }
     }
 }

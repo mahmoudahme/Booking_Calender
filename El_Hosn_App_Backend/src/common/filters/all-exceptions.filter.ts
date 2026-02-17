@@ -58,6 +58,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const errorResponse = ResponseUtil.error(message, code, status, null);
 
-    response.status(HttpStatus.OK).json(errorResponse);
+    response.status(status).json(errorResponse);
   }
 }

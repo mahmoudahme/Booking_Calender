@@ -74,7 +74,8 @@ export const useAppointments = (selectedDate, viewMode, selectedDoctors) => {
         fetchAppointments();
     }, [fetchAppointments]);
 
-    // Polling every 20 seconds
+    // Polling disabled as requested
+    /*
     useEffect(() => {
         const interval = setInterval(() => {
             fetchAppointments(true);
@@ -82,6 +83,7 @@ export const useAppointments = (selectedDate, viewMode, selectedDoctors) => {
 
         return () => clearInterval(interval);
     }, [fetchAppointments]);
+    */
 
     return {
         appointments,

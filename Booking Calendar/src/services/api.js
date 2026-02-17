@@ -11,10 +11,15 @@ class BookingAPI {
     async getDoctors() {
         try {
             const response = await axios.get(`${API_BASE_URL}/doctors`);
-            return response.data.data;
+            const responseData = response.data;
+            if (responseData && responseData.success === false) {
+                console.error('Backend returned unsucessful response:', responseData.message);
+                return [];
+            }
+            return responseData.data || responseData || [];
         } catch (error) {
             console.error('Error fetching doctors:', error);
-            throw error;
+            return [];
         }
     }
 
@@ -27,13 +32,24 @@ class BookingAPI {
                 params: {
                     startDate,
                     endDate,
-                    doctorIds: doctorIds.join(',')
+                    doctorIds: Array.isArray(doctorIds) ? doctorIds.join(',') : ''
                 }
             });
-            return response.data.data.appointments || [];
+
+            // Handle wrapped response { success: true, data: { appointments: [] } }
+            // or { success: false, data: null }
+            const responseData = response.data;
+            if (responseData && responseData.success === false) {
+                console.error('Backend returned unsucessful response:', responseData.message);
+                return [];
+            }
+
+            const data = responseData.data || responseData;
+            return data?.appointments || [];
         } catch (error) {
             console.error('Error fetching appointments:', error);
-            throw error;
+            // Return empty array instead of throwing to prevent UI crash
+            return [];
         }
     }
 
@@ -112,10 +128,15 @@ class BookingAPI {
     async getAppointmentById(appointmentId) {
         try {
             const response = await axios.get(`${API_BASE_URL}/appointments/${appointmentId}`);
-            return response.data.data || response.data;
+            const responseData = response.data;
+            if (responseData && responseData.success === false) {
+                console.error('Backend returned unsucessful response:', responseData.message);
+                return null;
+            }
+            return responseData.data || responseData;
         } catch (error) {
             console.error('Error fetching appointment:', error);
-            throw error;
+            return null;
         }
     }
 

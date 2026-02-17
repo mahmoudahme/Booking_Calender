@@ -1,6 +1,4 @@
-import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { ResPartner } from './ResPartner.entity';
-import { ResCountry } from './ResCountry.entity';
+import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('patient_model', { schema: 'public' })
 export class PatientModel {
@@ -10,16 +8,8 @@ export class PatientModel {
   @Column()
   partner_id!: number;
 
-  @ManyToOne(() => ResPartner)
-  @JoinColumn({ name: 'partner_id' })
-  partner!: ResPartner;
-
   @Column({ nullable: true })
   nationality!: number | null;
-
-  @ManyToOne(() => ResCountry)
-  @JoinColumn({ name: 'nationality' })
-  nationality_rel!: ResCountry;
 
   @Column({ nullable: true })
   age!: number | null;
@@ -32,15 +22,6 @@ export class PatientModel {
 
   @Column({ nullable: true })
   beds_available!: number | null;
-
-  @Column({ nullable: true })
-  bed_type_id!: number | null;
-
-  @Column({ nullable: true })
-  transferred_from_id!: number | null;
-
-  @Column({ nullable: true })
-  ward_id!: number | null;
 
   @Column({ nullable: true })
   create_uid!: number | null;
@@ -194,5 +175,17 @@ export class PatientModel {
 
   @Column({ nullable: true })
   charge!: number | null;
+
+  @Column({ nullable: true })
+  passport!: string | null;
+
+  @Column({ nullable: true })
+  medical_alert!: string | null;
+
+  @Column({ nullable: true })
+  surgical_history!: string | null;
+
+  @Column({ nullable: true })
+  allergies!: string | null;
 
 }
