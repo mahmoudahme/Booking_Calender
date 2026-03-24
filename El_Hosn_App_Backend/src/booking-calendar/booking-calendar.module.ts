@@ -9,6 +9,8 @@ import { DoctorSpecialityModel } from '../entities/entities/DoctorSpecialityMode
 import { PatientModel } from '../entities/entities/PatientModel.entity';
 import { SubtimeModel } from '../entities/entities/SubtimeModel.entity';
 import { ResCountry } from '../entities/entities/ResCountry.entity';
+import { CampaginsSources } from '../entities/entities/CampaginsSources.entity';
+import { ResCompany } from '../entities/entities/ResCompany.entity';
 
 @Module({
     imports: [
@@ -20,6 +22,8 @@ import { ResCountry } from '../entities/entities/ResCountry.entity';
             PatientModel,
             SubtimeModel,
             ResCountry,
+            CampaginsSources,
+            ResCompany,
         ]),
     ],
     controllers: [BookingCalendarController],

@@ -40,4 +40,8 @@ export class CreateAppointmentDto {
     @Type(() => PatientDetailsDto)
     @IsOptional()
     patientDetails?: PatientDetailsDto;
+
+    @IsNumber()
+    @IsOptional()
+    patientSrcId?: number;
 }

@@ -15,6 +15,8 @@ const Sidebar = ({
 }) => {
     const [isDoctorsExpanded, setIsDoctorsExpanded] = useState(true);
     const [isStatesExpanded, setIsStatesExpanded] = useState(true);
+    const [doctorSearch, setDoctorSearch] = useState('');
+    const [selectedCompanyId, setSelectedCompanyId] = useState('all');
 
     const APPOINTMENT_STATES = [
         { id: 'onthyfly', label: 'On The Fly', color: 'bg-gray' },
@@ -23,24 +25,36 @@ const Sidebar = ({
         { id: 'in_chair', label: 'In Chair', color: 'bg-purple' },
         { id: 'in_payment', label: 'In Payment', color: 'bg-orange' },
         { id: 'paid', label: 'Paid', color: 'bg-green' },
-        { id: 'closed', label: 'Closed', color: 'bg-pink' },
+        { id: 'visit_closed', label: 'visit Closed', color: 'bg-pink' },
     ];
 
-    const handleDoctorToggle = (doctorId) => {
+    const handleDoctorSelect = (doctorId) => {
+        // Radio behavior: if already selected, deselect; otherwise select only this one
         if (selectedDoctors.includes(doctorId)) {
-            setSelectedDoctors(selectedDoctors.filter(id => id !== doctorId));
+            setSelectedDoctors([]);
         } else {
-            setSelectedDoctors([...selectedDoctors, doctorId]);
+            setSelectedDoctors([doctorId]);
         }
     };
 
-    const handleToggleAllDoctors = () => {
-        if (selectedDoctors.length === doctors.length) {
-            setSelectedDoctors([]);
-        } else {
-            setSelectedDoctors(doctors.map(d => d.id));
-        }
-    };
+
+    // Extract unique companies from doctors list
+    const companies = [
+        { id: 'all', name: 'All Branches' },
+        ...Array.from(
+            new Map(
+                doctors
+                    .filter(doc => doc.companyId && doc.companyName)
+                    .map(doc => [doc.companyId, { id: doc.companyId, name: doc.companyName }])
+            ).values()
+        )
+    ];
+
+    const filteredDoctors = doctors.filter(doc => {
+        const matchesSearch = doc.name.toLowerCase().includes(doctorSearch.toLowerCase());
+        const matchesCompany = selectedCompanyId === 'all' || doc.companyId === selectedCompanyId;
+        return matchesSearch && matchesCompany;
+    });
 
     const handleStateToggle = (stateId) => {
         if (selectedStates.includes(stateId)) {
@@ -151,29 +165,91 @@ const Sidebar = ({
 
                 {isDoctorsExpanded && (
                     <div style={{ paddingLeft: '26px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.8rem' }}>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); handleToggleAllDoctors(); }}
-                                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}
+                        {/* Branch / Company Filter */}
+                        {companies.length > 1 && (
+                            <select
+                                value={selectedCompanyId}
+                                onChange={(e) => {
+                                    const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+                                    setSelectedCompanyId(val);
+                                    setSelectedDoctors([]);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    width: '100%',
+                                    padding: '6px 10px',
+                                    marginBottom: '0.6rem',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '6px',
+                                    fontSize: '0.85rem',
+                                    background: 'var(--input-bg)',
+                                    color: 'var(--text)',
+                                    boxSizing: 'border-box',
+                                    cursor: 'pointer',
+                                    outline: 'none'
+                                }}
                             >
-                                {selectedDoctors.length === doctors.length ? 'Unselect All' : 'Select All'}
-                            </button>
-                        </div>
+                                {companies.map(company => (
+                                    <option key={company.id} value={company.id}>
+                                        {company.name}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        <input
+                            type="text"
+                            placeholder="Search doctors..."
+                            value={doctorSearch}
+                            onChange={(e) => setDoctorSearch(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                width: '100%',
+                                padding: '6px 10px',
+                                marginBottom: '0.8rem',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '6px',
+                                fontSize: '0.85rem',
+                                background: 'var(--input-bg)',
+                                color: 'var(--text)',
+                                boxSizing: 'border-box',
+                                outline: 'none'
+                            }}
+                        />
+                        {filteredDoctors.length > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.8rem' }}>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (selectedDoctors.length > 0) {
+                                            setSelectedDoctors([]);
+                                        } else {
+                                            setSelectedDoctors(filteredDoctors.map(d => d.id));
+                                        }
+                                    }}
+                                    style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}
+                                >
+                                    {selectedDoctors.length > 0 ? 'Unselect All' : 'Select All'}
+                                </button>
+                            </div>
+                        )}
                         <div className="doctor-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {doctors.map(doc => (
+                            {filteredDoctors.map(doc => (
                                 <label
                                     key={doc.id}
                                     style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem', padding: '2px 0' }}
                                 >
                                     <input
-                                        type="checkbox"
+                                        type="radio"
                                         checked={selectedDoctors.includes(doc.id)}
-                                        onChange={() => handleDoctorToggle(doc.id)}
+                                        onChange={() => handleDoctorSelect(doc.id)}
                                         style={{ accentColor: 'var(--primary)', width: '16px', height: '16px', cursor: 'pointer' }}
                                     />
                                     <span>{doc.name}</span>
                                 </label>
                             ))}
+                            {filteredDoctors.length === 0 && (
+                                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No doctors found</span>
+                            )}
                         </div>
                     </div>
                 )}

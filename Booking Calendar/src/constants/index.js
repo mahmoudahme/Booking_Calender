@@ -1,8 +1,8 @@
 // API Configuration
-export const API_BASE_URL = 'http://72.62.16.223:3000/api/v1/booking-calendar';
+export const API_BASE_URL = 'http://localhost:3000/api/v1/booking-calendar';
 
 // Time Configuration
-export const HOURS = (() => { 
+export const HOURS = (() => {
     const hours = [];
     for (let h = 9; h <= 21; h++) {
         ['00', '15', '30', '45'].forEach(m => {
@@ -36,7 +36,8 @@ export const STATUS_COLORS = {
     in_chair: { light: '#7c3aed', dark: '#a78bfa' },
     in_payment: { light: '#ea580c', dark: '#fb923c' },
     paid: { light: '#0da35d', dark: '#4ade80' },
-    closed: { light: '#f02849', dark: '#ff6b8a' }
+    closed: { light: '#f02849', dark: '#ff6b8a' },
+    visit_closed: { light: '#f02849', dark: '#ff6b8a' }
 };
 
 // Status Labels
@@ -47,7 +48,8 @@ export const STATUS_LABELS = {
     in_chair: 'In Chair',
     in_payment: 'In Payment',
     paid: 'Paid',
-    closed: 'Closed'
+    closed: 'Closed',
+    visit_closed: 'Visit Closed'
 };
 
 // Default Values

@@ -25,9 +25,11 @@ const DayView = ({
 }) => {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
+    const visibleDoctors = doctors.filter(doc => selectedDoctors.includes(doc.id));
+
     return (
         <>
-            {doctors.filter(doc => selectedDoctors.includes(doc.id)).map(doc => (
+            {visibleDoctors.map(doc => (
                 <div key={doc.id} className="doctor-column">
                     <div className="doctor-header">
                         <h4>{doc.name}</h4>

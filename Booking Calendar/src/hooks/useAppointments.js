@@ -16,11 +16,6 @@ export const useAppointments = (selectedDate, viewMode, selectedDoctors) => {
     const fetchAppointments = useCallback(async (silent = false) => {
         // Validate inputs
         if (!selectedDate || isNaN(selectedDate.getTime())) return;
-        if (!selectedDoctors || selectedDoctors.length === 0) {
-            setAppointments([]);
-            return;
-        }
-
         if (!silent) setIsRefreshing(true);
 
         try {

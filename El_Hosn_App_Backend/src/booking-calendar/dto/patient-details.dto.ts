@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsNotEmpty } from 'class-validator';
 
 export class PatientDetailsDto {
     @IsString()
@@ -35,4 +35,11 @@ export class PatientDetailsDto {
     @IsString()
     @IsOptional()
     additionalPhone?: string;
+
+    @IsEnum(['iqama', 'national_id', 'passport'])
+    @IsOptional()
+    idType?: 'iqama' | 'national_id' | 'passport';
+
+    @IsOptional()
+    nationalityId?: number | string;
 }

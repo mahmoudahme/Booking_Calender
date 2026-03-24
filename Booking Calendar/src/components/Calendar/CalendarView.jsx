@@ -30,7 +30,7 @@ const CalendarView = ({
                 <div className="legend-item"><div className="legend-color bg-purple"></div><span>In Chair</span></div>
                 <div className="legend-item"><div className="legend-color bg-orange"></div><span>In Payment</span></div>
                 <div className="legend-item"><div className="legend-color bg-green"></div><span>Paid</span></div>
-                <div className="legend-item"><div className="legend-color bg-pink"></div><span>Closed</span></div>
+                <div className="legend-item"><div className="legend-color bg-pink"></div><span>visit closed</span></div>
             </div>
 
             <div className="scheduler-scroll-container">

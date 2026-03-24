@@ -94,6 +94,19 @@ class BookingAPI {
     }
 
     /**
+     * Get last appointment's patient source for a patient
+     */
+    async getLastAppointmentByPatient(patientId) {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/patients/${patientId}/last-appointment`);
+            return response.data.data || response.data;
+        } catch (error) {
+            console.error('Error fetching last appointment by patient:', error);
+            return { patientSrcId: null };
+        }
+    }
+
+    /**
      * Search patients
      */
     async searchPatients(term) {
@@ -105,6 +118,32 @@ class BookingAPI {
             return response.data.data || response.data;
         } catch (error) {
             console.error('Error searching patients:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch countries
+     */
+    async getCountries() {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/countries`);
+            return response.data.data || response.data || [];
+        } catch (error) {
+            console.error('Error fetching countries:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch campaign sources
+     */
+    async getCampaignSources() {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/campaign-sources`);
+            return response.data.data || response.data || [];
+        } catch (error) {
+            console.error('Error fetching campaign sources:', error);
             return [];
         }
     }
@@ -149,6 +188,19 @@ class BookingAPI {
             return response.data;
         } catch (error) {
             console.error('Error updating appointment:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update appointment status only
+     */
+    async updateAppointmentStatus(appointmentId, state) {
+        try {
+            const response = await axios.patch(`${API_BASE_URL}/appointments/${appointmentId}/status`, { state });
+            return response.data;
+        } catch (error) {
+            console.error('Error updating appointment status:', error);
             throw error;
         }
     }

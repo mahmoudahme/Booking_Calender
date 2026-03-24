@@ -1,129 +1,157 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between, In } from 'typeorm';
+import { AccountMove } from '../entities/entities/AccountMove.entity';
+import { AccountMoveLine } from '../entities/entities/AccountMoveLine.entity';
+import { AccountPayment } from '../entities/entities/AccountPayment.entity';
+import { ResCompany } from '../entities/entities/ResCompany.entity';
+import { ProductProduct } from '../entities/entities/ProductProduct.entity';
+import { ProductTemplate } from '../entities/entities/ProductTemplate.entity';
+import { OpdRegistrationModel } from '../entities/entities/OpdRegistrationModel.entity';
+import { DoctorModel } from '../entities/entities/DoctorModel.entity';
+import { PatientModel } from '../entities/entities/PatientModel.entity';
+import { SubtimeModel } from '../entities/entities/SubtimeModel.entity';
+import { StockMove } from '../entities/entities/StockMove.entity';
+import { UomUom } from '../entities/entities/UomUom.entity';
+import { StockLocation } from '../entities/entities/StockLocation.entity';
+import { StockQuant } from '../entities/entities/StockQuant.entity';
+import { ResCountry } from '../entities/entities/ResCountry.entity';
 
 @Injectable()
 export class DashboardService {
+    constructor(
+        @InjectRepository(AccountMove)
+        private readonly accountMoveRepo: Repository<AccountMove>,
+        @InjectRepository(AccountMoveLine)
+        private readonly accountMoveLineRepo: Repository<AccountMoveLine>,
+        @InjectRepository(AccountPayment)
+        private readonly accountPaymentRepo: Repository<AccountPayment>,
+        @InjectRepository(ResCompany)
+        private readonly companyRepo: Repository<ResCompany>,
+        @InjectRepository(ProductProduct)
+        private readonly productRepo: Repository<ProductProduct>,
+        @InjectRepository(ProductTemplate)
+        private readonly productTemplateRepo: Repository<ProductTemplate>,
+        @InjectRepository(OpdRegistrationModel)
+        private readonly appointmentRepo: Repository<OpdRegistrationModel>,
+        @InjectRepository(DoctorModel)
+        private readonly doctorRepo: Repository<DoctorModel>,
+        @InjectRepository(PatientModel)
+        private readonly patientRepo: Repository<PatientModel>,
+        @InjectRepository(SubtimeModel)
+        private readonly subtimeRepo: Repository<SubtimeModel>,
+        @InjectRepository(StockMove)
+        private readonly stockMoveRepo: Repository<StockMove>,
+        @InjectRepository(UomUom)
+        private readonly uomRepo: Repository<UomUom>,
+        @InjectRepository(StockLocation)
+        private readonly locationRepo: Repository<StockLocation>,
+        @InjectRepository(StockQuant)
+        private readonly stockQuantRepo: Repository<StockQuant>,
+        @InjectRepository(ResCountry)
+        private readonly countryRepo: Repository<ResCountry>,
+    ) { }
 
-    private readonly branches = [
-        { id: 1, name: 'Al Khobar Branch', nameAr: 'فرع الخبر' },
-        { id: 2, name: 'Al Aziziyah Branch', nameAr: 'فرع العزيزية' },
-        { id: 3, name: 'Makkah Branch', nameAr: 'فرع مكة' },
-    ];
+    private getDateRange(period: string): { start: Date, end: Date } {
+        const now = new Date();
+        const start = new Date();
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
 
-    private readonly doctors = [
-        { id: 1, name: 'Dr. Fahad Al-Qahtani', specialty: 'Plastic Surgery', branch: 1 },
-        { id: 2, name: 'Dr. Noura Al-Dosari', specialty: 'Dermatology', branch: 1 },
-        { id: 3, name: 'Dr. Sultan Al-Otaibi', specialty: 'Cosmetic Surgery', branch: 2 },
-        { id: 4, name: 'Dr. Reem Al-Harbi', specialty: 'Laser Specialist', branch: 2 },
-        { id: 5, name: 'Dr. Abdulaziz Al-Shehri', specialty: 'Hair Transplant', branch: 3 },
-        { id: 6, name: 'Dr. Hanan Al-Zahrani', specialty: 'Aesthetic Medicine', branch: 3 },
-        { id: 7, name: 'Dr. Khalid Al-Ghamdi', specialty: 'Body Contouring', branch: 1 },
-        { id: 8, name: 'Dr. Lama Al-Mutairi', specialty: 'Skin Care Specialist', branch: 3 },
-    ];
-
-    private readonly services = [
-        { id: 1, name: 'Botox Injection', category: 'Injectables', basePrice: 1800 },
-        { id: 2, name: 'Dermal Fillers', category: 'Injectables', basePrice: 2500 },
-        { id: 3, name: 'Rhinoplasty', category: 'Plastic Surgery', basePrice: 25000 },
-        { id: 4, name: 'Liposuction', category: 'Body Contouring', basePrice: 18000 },
-        { id: 5, name: 'Laser Hair Removal', category: 'Laser Treatments', basePrice: 1200 },
-        { id: 6, name: 'Chemical Peel', category: 'Skin Care', basePrice: 800 },
-        { id: 7, name: 'Hair Transplant (FUE)', category: 'Hair Restoration', basePrice: 15000 },
-        { id: 8, name: 'PRP Therapy', category: 'Regenerative', basePrice: 1500 },
-        { id: 9, name: 'Facelift Surgery', category: 'Plastic Surgery', basePrice: 35000 },
-        { id: 10, name: 'Hydrafacial', category: 'Skin Care', basePrice: 600 },
-        { id: 11, name: 'Tummy Tuck', category: 'Body Contouring', basePrice: 22000 },
-        { id: 12, name: 'Laser Skin Resurfacing', category: 'Laser Treatments', basePrice: 3500 },
-    ];
-
-    private readonly consumables = [
-        { id: 1, name: 'Hyaluronic Acid Filler', unit: 'syringe', unitCost: 450 },
-        { id: 2, name: 'Botulinum Toxin', unit: 'vial', unitCost: 380 },
-        { id: 3, name: 'Surgical Gloves (Sterile)', unit: 'box', unitCost: 120 },
-        { id: 4, name: 'PRP Kits', unit: 'kit', unitCost: 280 },
-        { id: 5, name: 'Laser Protective Gel', unit: 'bottle', unitCost: 150 },
-        { id: 6, name: 'Surgical Sutures', unit: 'pack', unitCost: 200 },
-        { id: 7, name: 'Anesthetic Cream (EMLA)', unit: 'tube', unitCost: 95 },
-        { id: 8, name: 'Collagen Mask Sheets', unit: 'pack', unitCost: 180 },
-        { id: 9, name: 'Sterile Gauze Pads', unit: 'bag', unitCost: 45 },
-        { id: 10, name: 'Chemical Peel Solution', unit: 'bottle', unitCost: 320 },
-        { id: 11, name: 'Mesotherapy Serum', unit: 'vial', unitCost: 260 },
-        { id: 12, name: 'Skin Disinfectant', unit: 'liter', unitCost: 75 },
-    ];
-
-    // Helper to generate random number in range
-    private rand(min: number, max: number): number {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    // Helper to get last N days
-    private getLastNDays(n: number): string[] {
-        const days: string[] = [];
-        const today = new Date();
-        for (let i = n - 1; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(d.getDate() - i);
-            days.push(d.toISOString().split('T')[0]);
+        if (period === 'daily') {
+            start.setHours(0, 0, 0, 0);
+        } else if (period === 'weekly') {
+            start.setDate(now.getDate() - 7);
+            start.setHours(0, 0, 0, 0);
+        } else { // monthly
+            start.setDate(now.getDate() - 30);
+            start.setHours(0, 0, 0, 0);
         }
-        return days;
-    }
-
-    // Helper to get last N weeks as labels
-    private getLastNWeeks(n: number): { label: string; startDate: string; endDate: string }[] {
-        const weeks: { label: string; startDate: string; endDate: string }[] = [];
-        const today = new Date();
-        for (let i = n - 1; i >= 0; i--) {
-            const weekEnd = new Date(today);
-            weekEnd.setDate(weekEnd.getDate() - i * 7);
-            const weekStart = new Date(weekEnd);
-            weekStart.setDate(weekStart.getDate() - 6);
-            weeks.push({
-                label: `Week ${n - i}`,
-                startDate: weekStart.toISOString().split('T')[0],
-                endDate: weekEnd.toISOString().split('T')[0],
-            });
-        }
-        return weeks;
+        return { start, end };
     }
 
     /**
      * Financial & Branch Comparison
      */
     async getFinancialOverview(period: string = 'monthly') {
-        const multiplier = period === 'daily' ? 1 : period === 'weekly' ? 7 : 30;
+        const { start, end } = this.getDateRange(period);
 
-        const branchRevenue = this.branches.map(branch => {
-            const baseDaily = this.rand(8000, 25000);
-            const totalRevenue = baseDaily * multiplier;
-            const paidInvoices = Math.round(totalRevenue * (this.rand(70, 92) / 100));
-            const pendingInvoices = totalRevenue - paidInvoices;
-            const appointmentCount = this.rand(15, 45) * multiplier;
-
-            return {
-                branchId: branch.id,
-                branchName: branch.name,
-                totalRevenue,
-                paidInvoices,
-                pendingInvoices,
-                collectionRate: Math.round((paidInvoices / totalRevenue) * 100),
-                appointmentCount,
-                revenuePerAppointment: Math.round(totalRevenue / appointmentCount),
-            };
+        const invoices = await this.accountMoveRepo.find({
+            where: {
+                move_type: 'out_invoice',
+                state: 'posted',
+                invoice_date: Between(start, end)
+            }
         });
 
-        // Sort for ranking
+        const companies = await this.companyRepo.find();
+        const companyMap = new Map(companies.map(c => [c.id, c.name]));
+
+        const branchStatsMap = new Map<number, any>();
+        companies.forEach(c => {
+            branchStatsMap.set(c.id, {
+                branchId: c.id, branchName: c.name,
+                totalRevenue: 0, paidInvoices: 0, pendingInvoices: 0, appointmentCount: 0
+            });
+        });
+
+        invoices.forEach(inv => {
+            const cid = inv.company_id || (companies[0]?.id || 0);
+            if (!branchStatsMap.has(cid)) {
+                branchStatsMap.set(cid, {
+                    branchId: cid, branchName: companyMap.get(cid) || 'Other',
+                    totalRevenue: 0, paidInvoices: 0, pendingInvoices: 0, appointmentCount: 0
+                });
+            }
+            const stats = branchStatsMap.get(cid);
+            const total = Number(inv.amount_total) || 0;
+            const residual = Number(inv.amount_residual) || 0;
+            stats.totalRevenue += total;
+            stats.paidInvoices += (total - residual);
+            stats.pendingInvoices += residual;
+        });
+
+        const appCounts = await this.appointmentRepo.createQueryBuilder('app')
+            .select('app.company', 'company_id')
+            .addSelect('COUNT(*)', 'count')
+            .where('app.appointment_date BETWEEN :start AND :end', { start, end })
+            .groupBy('app.company').getRawMany();
+
+        appCounts.forEach(ac => {
+            const cid = Number(ac.company_id);
+            if (branchStatsMap.has(cid)) {
+                branchStatsMap.get(cid).appointmentCount = Number(ac.count);
+            }
+        });
+
+        const branchRevenue = Array.from(branchStatsMap.values()).map(b => ({
+            ...b,
+            collectionRate: b.totalRevenue > 0 ? Math.round((b.paidInvoices / b.totalRevenue) * 100) : 0,
+            revenuePerAppointment: b.appointmentCount > 0 ? Math.round(b.totalRevenue / b.appointmentCount) : 0
+        }));
+
         const ranked = [...branchRevenue].sort((a, b) => b.totalRevenue - a.totalRevenue);
 
-        // Daily revenue trend (last 30 days)
-        const days = this.getLastNDays(30);
-        const dailyTrend = days.map(date => ({
-            date,
-            branches: this.branches.map(b => ({
-                branchId: b.id,
-                branchName: b.name,
-                revenue: this.rand(5000, 30000),
-                appointments: this.rand(12, 50),
-            })),
-        }));
+        const dailyTrendQuery = await this.accountMoveRepo.createQueryBuilder('inv')
+            .select("to_char(inv.invoice_date, 'YYYY-MM-DD')", 'date')
+            .addSelect('inv.company_id', 'branchId')
+            .addSelect('SUM(inv.amount_total)', 'revenue')
+            .addSelect('COUNT(*)', 'appointments')
+            .where("inv.move_type = 'out_invoice' AND inv.state = 'posted'")
+            .andWhere('inv.invoice_date BETWEEN :start AND :end', { start, end })
+            .groupBy("to_char(inv.invoice_date, 'YYYY-MM-DD')").addGroupBy('inv.company_id')
+            .orderBy('date', 'ASC').getRawMany();
+
+        const trendMap = new Map<string, any[]>();
+        dailyTrendQuery.forEach(row => {
+            if (!trendMap.has(row.date)) trendMap.set(row.date, []);
+            trendMap.get(row.date).push({
+                branchId: row.branchId,
+                branchName: companyMap.get(row.branchId) || 'Other',
+                revenue: Number(row.revenue),
+                appointments: Number(row.appointments)
+            });
+        });
 
         return {
             period,
@@ -131,256 +159,304 @@ export class DashboardService {
                 totalRevenue: branchRevenue.reduce((s, b) => s + b.totalRevenue, 0),
                 totalPaid: branchRevenue.reduce((s, b) => s + b.paidInvoices, 0),
                 totalPending: branchRevenue.reduce((s, b) => s + b.pendingInvoices, 0),
-                overallCollectionRate: Math.round(
-                    (branchRevenue.reduce((s, b) => s + b.paidInvoices, 0) /
-                        branchRevenue.reduce((s, b) => s + b.totalRevenue, 0)) * 100
-                ),
+                overallCollectionRate: branchRevenue.reduce((s, b) => s + b.totalRevenue, 0) > 0
+                    ? Math.round((branchRevenue.reduce((s, b) => s + b.paidInvoices, 0) / branchRevenue.reduce((s, b) => s + b.totalRevenue, 0)) * 100)
+                    : 0,
             },
             branchRevenue: ranked,
-            topBranch: ranked[0],
-            lowestBranch: ranked[ranked.length - 1],
-            dailyTrend,
-            branchComparison: branchRevenue.map(b => ({
-                branchName: b.branchName,
-                revenue: b.totalRevenue,
-                appointments: b.appointmentCount,
-            })),
+            topBranch: ranked[0] || null,
+            lowestBranch: ranked[ranked.length - 1] || null,
+            dailyTrend: Array.from(trendMap.entries()).map(([date, branches]) => ({ date, branches })),
+            branchComparison: branchRevenue.map(b => ({ branchName: b.branchName, revenue: b.totalRevenue, appointments: b.appointmentCount })),
         };
     }
 
     /**
-     * Services & Inventory (Consumables)
+     * Services & Inventory
      */
     async getServicesAndInventory(period: string = 'monthly') {
-        const multiplier = period === 'daily' ? 1 : period === 'weekly' ? 7 : 30;
+        const { start, end } = this.getDateRange(period);
 
-        // Top selling services
-        const topServices = this.services.map(service => {
-            const count = this.rand(3, 20) * multiplier;
-            const revenue = count * service.basePrice * (this.rand(80, 120) / 100);
+        // Join MoveLine with Product and Template
+        const serviceStats = await this.accountMoveLineRepo.createQueryBuilder('aml')
+            .select('t.id', 'templateId')
+            .addSelect("t.name->>'en_US'", 'serviceName')
+            .addSelect('c.name', 'category')
+            .addSelect('SUM(aml.quantity)', 'count')
+            .addSelect('SUM(aml.price_subtotal)', 'revenue')
+            .innerJoin(ProductProduct, 'p', 'p.id = aml.product_id')
+            .innerJoin(ProductTemplate, 't', 't.id = p.product_tmpl_id')
+            .leftJoin('product_category', 'c', 'c.id = t.categ_id')
+            .where('aml.invoice_date BETWEEN :start AND :end', { start, end })
+            .andWhere("aml.parent_state = 'posted' AND aml.display_type = 'product'")
+            .groupBy('t.id').addGroupBy('t.name').addGroupBy('c.name')
+            .orderBy('revenue', 'DESC')
+            .getRawMany();
+
+        const topServices = serviceStats.map(s => ({
+            serviceId: s.templateId,
+            serviceName: s.serviceName || 'Unknown Service',
+            category: s.category || 'General',
+            procedureCount: Number(s.count),
+            totalRevenue: Number(s.revenue),
+            averagePrice: Number(s.count) > 0 ? Math.round(Number(s.revenue) / Number(s.count)) : 0
+        }));
+
+        const categories = [...new Set(topServices.map(s => s.category))];
+        const servicesByCategory = categories.map(cat => {
+            const catServices = topServices.filter(s => s.category === cat);
             return {
-                serviceId: service.id,
-                serviceName: service.name,
-                category: service.category,
-                procedureCount: count,
-                totalRevenue: Math.round(revenue),
-                averagePrice: Math.round(revenue / count),
+                category: cat,
+                procedureCount: catServices.reduce((sum, s) => sum + s.procedureCount, 0),
+                totalRevenue: catServices.reduce((sum, s) => sum + s.totalRevenue, 0)
             };
         }).sort((a, b) => b.totalRevenue - a.totalRevenue);
 
-        // Service revenue by category
-        const categoryMap: Record<string, { count: number; revenue: number }> = {};
-        topServices.forEach(s => {
-            if (!categoryMap[s.category]) categoryMap[s.category] = { count: 0, revenue: 0 };
-            categoryMap[s.category].count += s.procedureCount;
-            categoryMap[s.category].revenue += s.totalRevenue;
-        });
-        const servicesByCategory = Object.entries(categoryMap).map(([category, data]) => ({
-            category,
-            procedureCount: data.count,
-            totalRevenue: data.revenue,
-        })).sort((a, b) => b.totalRevenue - a.totalRevenue);
+        // Consumables usage from stock moves (internal → non-internal)
+        const consumablesStats = await this.stockMoveRepo.createQueryBuilder('sm')
+            .select('t.id', 'templateId')
+            .addSelect("t.name->>'en_US'", 'itemName')
+            .addSelect("u.name->>'en_US'", 'unit')
+            .addSelect('SUM(COALESCE(sm.quantity, sm.product_uom_qty))', 'quantity_used')
+            .addSelect('SUM(COALESCE(sm.value, 0))', 'total_cost')
+            .addSelect('p.id', 'productId')
+            .innerJoin(ProductProduct, 'p', 'p.id = sm.product_id')
+            .innerJoin(ProductTemplate, 't', 't.id = p.product_tmpl_id')
+            .leftJoin(UomUom, 'u', 'u.id = sm.product_uom')
+            .innerJoin(StockLocation, 'sl_src', 'sl_src.id = sm.location_id')
+            .innerJoin(StockLocation, 'sl_dest', 'sl_dest.id = sm.location_dest_id')
+            .where('sm.date BETWEEN :start AND :end', { start, end })
+            .andWhere("sm.state = 'done'")
+            .andWhere("sl_src.usage = 'internal' AND sl_dest.usage != 'internal'")
+            .groupBy('t.id').addGroupBy('t.name').addGroupBy('u.name').addGroupBy('p.id')
+            .orderBy('quantity_used', 'DESC')
+            .getRawMany();
 
-        // Consumables tracking
-        const consumablesUsage = this.consumables.map(item => {
-            const used = this.rand(5, 50) * (period === 'daily' ? 1 : period === 'weekly' ? 3 : 10);
-            const inStock = this.rand(20, 200);
+        // Get real current stock from stock_quant for internal locations
+        const productIds = consumablesStats.map(c => Number(c.productId)).filter(id => id);
+        let stockMap = new Map<number, number>();
+        if (productIds.length > 0) {
+            const currentStockData = await this.stockQuantRepo.createQueryBuilder('sq')
+                .select('sq.product_id', 'productId')
+                .addSelect('SUM(sq.quantity - sq.reserved_quantity)', 'availableQty')
+                .innerJoin(StockLocation, 'sl', 'sl.id = sq.location_id')
+                .where("sl.usage = 'internal'")
+                .andWhere('sq.product_id IN (:...productIds)', { productIds })
+                .groupBy('sq.product_id')
+                .getRawMany();
+
+            stockMap = new Map(currentStockData.map(s => [
+                Number(s.productId),
+                Math.max(0, Number(s.availableQty) || 0)
+            ]));
+        }
+
+        const consumablesUsage = consumablesStats.map(c => {
+            const currentStock = stockMap.get(Number(c.productId)) ?? 0;
+            const quantityUsed = Math.abs(Number(c.quantity_used));
+            // Flag as low if current stock covers less than 1 week of usage (relative to period)
+            const dailyUsage = quantityUsed / 30;
+            const reorderNeeded = currentStock < dailyUsage * 7;
+            const stockStatus = currentStock === 0 ? 'out_of_stock' : reorderNeeded ? 'low' : 'adequate';
+
             return {
-                itemId: item.id,
-                itemName: item.name,
-                unit: item.unit,
-                quantityUsed: used,
-                totalCost: used * item.unitCost,
-                currentStock: inStock,
-                stockStatus: inStock < 30 ? 'low' : inStock < 80 ? 'medium' : 'adequate',
-                reorderNeeded: inStock < 30,
+                itemId: c.templateId,
+                itemName: c.itemName || 'Unknown Item',
+                unit: c.unit || 'Units',
+                quantityUsed,
+                totalCost: Math.abs(Number(c.total_cost)) || 0,
+                currentStock,
+                stockStatus,
+                reorderNeeded
             };
-        }).sort((a, b) => b.quantityUsed - a.quantityUsed);
-
-        // Daily consumable trend (last 7 days)
-        const days = this.getLastNDays(7);
-        const consumableTrend = days.map(date => ({
-            date,
-            totalUsed: this.rand(80, 250),
-            totalCost: this.rand(3000, 12000),
-            topItem: this.consumables[this.rand(0, this.consumables.length - 1)].name,
-        }));
+        });
 
         return {
             period,
-            topServices,
+            topServices: topServices.slice(0, 10),
             servicesByCategory,
             consumablesUsage,
-            consumableTrend,
             alerts: consumablesUsage.filter(c => c.reorderNeeded).map(c => ({
                 itemName: c.itemName,
                 currentStock: c.currentStock,
                 unit: c.unit,
-                message: `${c.itemName} stock is low (${c.currentStock} ${c.unit}s remaining)`,
-            })),
+                message: c.currentStock === 0
+                    ? `${c.itemName} is out of stock`
+                    : `${c.itemName} stock is low (${c.currentStock} ${c.unit} remaining)`
+            }))
         };
     }
 
     /**
-     * Patient Analytics & Growth
+     * Patient Analytics
      */
     async getPatientAnalytics(period: string = 'monthly') {
-        // Daily patient traffic (last 30 days)
-        const days = this.getLastNDays(30);
-        const dailyTraffic = days.map(date => {
-            const total = this.rand(25, 80);
-            const newPatients = this.rand(5, Math.floor(total * 0.4));
-            return {
-                date,
-                total,
-                newPatients,
-                returningPatients: total - newPatients,
-            };
+        const { start, end } = this.getDateRange(period);
+
+        const totalPatients = await this.patientRepo.count();
+        const newPatientsCount = await this.patientRepo.count({
+            where: { create_date: Between(start, end) }
         });
 
-        // Weekly growth (last 8 weeks)
-        const weeks = this.getLastNWeeks(8);
-        let previousWeekVolume = this.rand(150, 250);
-        const weeklyGrowth = weeks.map((week, idx) => {
-            const volume = idx === 0 ? previousWeekVolume : previousWeekVolume + this.rand(-20, 40);
-            const growth = idx === 0 ? 0 : Math.round(((volume - previousWeekVolume) / previousWeekVolume) * 100);
-            previousWeekVolume = volume;
-            return {
-                week: week.label,
-                startDate: week.startDate,
-                endDate: week.endDate,
-                patientVolume: Math.max(volume, 80),
-                newPatients: this.rand(20, 60),
-                growthRate: growth,
-            };
-        });
-
-        // Efficiency / QA metrics per branch
-        const efficiencyByBranch = this.branches.map(branch => ({
-            branchId: branch.id,
-            branchName: branch.name,
-            averageWaitTime: this.rand(8, 35), // minutes
-            noShowRate: this.rand(3, 18), // percentage
-            averageServiceTime: this.rand(20, 55), // minutes
-            patientSatisfaction: this.rand(75, 98), // percentage
-        }));
-
-        // Today's summary
-        const todayData = dailyTraffic[dailyTraffic.length - 1];
-
-        // Patient demographics (dummy)
         const demographics = {
-            byGender: { male: this.rand(25, 38), female: this.rand(62, 75) },
+            byGender: {
+                male: await this.patientRepo.count({ where: { gender: 'male' } }),
+                female: await this.patientRepo.count({ where: { gender: 'female' } })
+            },
             byAgeGroup: [
-                { group: '0-18', count: this.rand(10, 25) },
-                { group: '19-30', count: this.rand(25, 45) },
-                { group: '31-45', count: this.rand(30, 50) },
-                { group: '46-60', count: this.rand(15, 35) },
-                { group: '60+', count: this.rand(8, 20) },
+                { group: '0-18', count: await this.patientRepo.count({ where: { age: Between(0, 18) } }) },
+                { group: '19-30', count: await this.patientRepo.count({ where: { age: Between(19, 30) } }) },
+                { group: '31-45', count: await this.patientRepo.count({ where: { age: Between(31, 45) } }) },
+                { group: '46-60', count: await this.patientRepo.count({ where: { age: Between(46, 60) } }) },
+                { group: '60+', count: await this.patientRepo.count({ where: { age: Between(61, 120) } }) },
             ],
-            byNationality: [
-                { nationality: 'Saudi', count: this.rand(55, 75) },
-                { nationality: 'Yemeni', count: this.rand(5, 15) },
-                { nationality: 'Egyptian', count: this.rand(4, 12) },
-                { nationality: 'Other', count: this.rand(5, 18) },
-            ],
+            byNationality: await this.getNationalityDistribution(),
         };
+
+        // Real Daily Traffic
+        const trafficData = await this.appointmentRepo.createQueryBuilder('app')
+            .select("to_char(app.appointment_date, 'YYYY-MM-DD')", 'date')
+            .addSelect('COUNT(*)', 'count')
+            .where('app.appointment_date BETWEEN :start AND :end', { start, end })
+            .groupBy("to_char(app.appointment_date, 'YYYY-MM-DD')")
+            .orderBy('date', 'ASC')
+            .getRawMany();
+
+        // Weekly Growth (last 4 weeks)
+        const weeklyGrowth = [];
+        for (let i = 3; i >= 0; i--) {
+            const wStart = new Date(); wStart.setDate(wStart.getDate() - (i * 7 + 7));
+            const wEnd = new Date(); wEnd.setDate(wEnd.getDate() - (i * 7));
+            const count = await this.patientRepo.count({ where: { create_date: Between(wStart, wEnd) } });
+            weeklyGrowth.push({ week: `Week ${4 - i}`, newPatients: count });
+        }
+
+        // Efficiency by Branch (real no-show rate, wait time not available in DB)
+        const branches = await this.companyRepo.find();
+        const efficiencyByBranch = await Promise.all(branches.map(async b => {
+            const apps = await this.appointmentRepo.find({
+                where: { company: b.id, appointment_date: Between(start, end) }
+            });
+            const cancelled = apps.filter(a => ['cancel', 'cancelled'].includes(a.appointment_state || '')).length;
+            const missed = apps.filter(a => a.missed_state === 'missed').length;
+            const noShowCount = cancelled + missed;
+            return {
+                branchName: b.name,
+                averageWaitTime: null, // Not tracked in database
+                noShowRate: apps.length > 0 ? Math.round((noShowCount / apps.length) * 100) : 0,
+                patientSatisfaction: null // Not tracked in database
+            };
+        }));
 
         return {
             period,
             todaySummary: {
-                total: todayData.total,
-                newPatients: todayData.newPatients,
-                returningPatients: todayData.returningPatients,
-                newPatientPercentage: Math.round((todayData.newPatients / todayData.total) * 100),
+                total: totalPatients,
+                newPatients: newPatientsCount,
+                returningPatients: totalPatients - newPatientsCount,
+                newPatientPercentage: totalPatients > 0 ? Math.round((newPatientsCount / totalPatients) * 100) : 0,
             },
-            dailyTraffic,
+            dailyTraffic: trafficData.map(t => ({ date: t.date, count: Number(t.count) })),
             weeklyGrowth,
             efficiencyByBranch,
             demographics,
         };
     }
 
+    private async getNationalityDistribution(): Promise<{ nationality: string; count: number }[]> {
+        const results = await this.patientRepo.createQueryBuilder('p')
+            .select("rc.name->>'en_US'", 'nationality')
+            .addSelect('COUNT(*)', 'count')
+            .leftJoin(ResCountry, 'rc', 'rc.id = p.nationality')
+            .where('p.nationality IS NOT NULL')
+            .groupBy("rc.name->>'en_US'")
+            .orderBy('count', 'DESC')
+            .limit(10)
+            .getRawMany();
+
+        return results.map(r => ({
+            nationality: r.nationality || 'Unknown',
+            count: Number(r.count)
+        }));
+    }
+
     /**
      * Performance Tracking
      */
     async getPerformanceTracking() {
-        // Today's status overview
-        const totalProcedures = this.rand(60, 120);
-        const completed = this.rand(Math.floor(totalProcedures * 0.4), Math.floor(totalProcedures * 0.7));
-        const inProgress = this.rand(5, 15);
-        const pending = totalProcedures - completed - inProgress;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const tonight = new Date(); tonight.setHours(23, 59, 59, 999);
+
+        const todayApps = await this.appointmentRepo.find({
+            where: { appointment_date: Between(today, tonight) }
+        });
+
+        const completedApps = todayApps.filter(a => ['paid', 'closed'].includes(a.appointment_state || ''));
+        const cancelledApps = todayApps.filter(a => ['cancel', 'cancelled'].includes(a.appointment_state || ''));
+        const missedApps = todayApps.filter(a => a.missed_state === 'missed');
 
         const statusOverview = {
-            totalProcedures,
-            completed,
-            inProgress,
-            pending,
-            completionRate: Math.round((completed / totalProcedures) * 100),
-            cancelled: this.rand(2, 8),
-            noShows: this.rand(3, 10),
+            totalProcedures: todayApps.length,
+            completed: completedApps.length,
+            inProgress: todayApps.filter(a => ['in_chair', 'arrived'].includes(a.appointment_state || '')).length,
+            pending: todayApps.filter(a => a.appointment_state === 'confirmed').length,
+            completionRate: todayApps.length > 0
+                ? Math.round((completedApps.length / todayApps.length) * 100)
+                : 0,
+            cancelled: cancelledApps.length,
+            noShows: missedApps.length
         };
 
-        // Doctor KPIs
-        const doctorKPIs = this.doctors.map(doc => {
-            const total = this.rand(8, 25);
-            const done = this.rand(Math.floor(total * 0.5), total);
-            const avgDuration = this.rand(15, 45);
-            return {
-                doctorId: doc.id,
-                doctorName: doc.name,
-                specialty: doc.specialty,
-                branchId: doc.branch,
-                branchName: this.branches.find(b => b.id === doc.branch)?.name || '',
-                totalAppointments: total,
-                completedAppointments: done,
-                completionRate: Math.round((done / total) * 100),
-                averageDuration: avgDuration,
-                revenue: this.rand(3000, 15000),
-                patientRating: (this.rand(35, 50) / 10).toFixed(1),
-                noShows: this.rand(0, 3),
-            };
-        }).sort((a, b) => b.completionRate - a.completionRate);
+        // Doctor KPIs with real avg procedure time from end_date - appointment_date
+        const doctorStats = await this.appointmentRepo.createQueryBuilder('app')
+            .select('app.doctor_id', 'doctorId')
+            .addSelect('COUNT(*)', 'total')
+            .addSelect("SUM(CASE WHEN app.appointment_state IN ('paid', 'closed') THEN 1 ELSE 0 END)", 'completed')
+            .addSelect('AVG(CASE WHEN app.end_date IS NOT NULL AND app.appointment_state IN (\'paid\', \'closed\') THEN EXTRACT(EPOCH FROM (app.end_date - app.appointment_date))/60 END)', 'avgProcedureMinutes')
+            .where('app.appointment_date BETWEEN :start AND :end', { start: today, end: tonight })
+            .groupBy('app.doctor_id')
+            .getRawMany();
 
-        // Hourly distribution (for today)
-        const hourlyDistribution = [];
-        for (let h = 9; h <= 20; h++) {
-            hourlyDistribution.push({
-                hour: `${h}:00`,
-                appointments: this.rand(2, 12),
-                completed: this.rand(1, 8),
-                inProgress: this.rand(0, 3),
-            });
-        }
-
-        // Branch performance comparison
-        const branchPerformance = this.branches.map(branch => {
-            const branchDoctors = this.doctors.filter(d => d.branch === branch.id);
-            const totalAppts = branchDoctors.reduce(() => this.rand(20, 60), 0);
-            const completedAppts = Math.round(totalAppts * (this.rand(65, 90) / 100));
+        const doctorKPIs = await Promise.all(doctorStats.map(async s => {
+            const doctor = await this.doctorRepo.findOne({ where: { id: s.doctorId }, relations: ['partner'] });
+            const avgTime = s.avgProcedureMinutes ? Math.round(Number(s.avgProcedureMinutes)) : null;
             return {
-                branchId: branch.id,
-                branchName: branch.name,
-                totalAppointments: totalAppts,
-                completedAppointments: completedAppts,
-                completionRate: Math.round((completedAppts / totalAppts) * 100),
-                averageWaitTime: this.rand(10, 30),
-                doctorCount: branchDoctors.length,
-                revenue: this.rand(20000, 80000),
+                doctorName: doctor?.partner?.name || `Doctor ${s.doctorId}`,
+                completionRate: Number(s.total) > 0 ? Math.round((Number(s.completed) / Number(s.total)) * 100) : 0,
+                avgProcedureTime: avgTime,
+                patientSatisfaction: null // Not tracked in database
             };
-        });
+        }));
+
+        // Hourly Distribution
+        const hourlyDistribution = await this.appointmentRepo.createQueryBuilder('app')
+            .select("to_char(app.appointment_date, 'HH24:00')", 'hour')
+            .addSelect('COUNT(*)', 'count')
+            .where('app.appointment_date BETWEEN :start AND :end', { start: today, end: tonight })
+            .groupBy("to_char(app.appointment_date, 'HH24:00')")
+            .orderBy('hour', 'ASC')
+            .getRawMany();
+
+        // Branch Performance
+        const branches = await this.companyRepo.find();
+        const branchPerformance = await Promise.all(branches.map(async b => {
+            const apps = todayApps.filter(a => Number(a.company) === b.id);
+            const totalSlots = await this.subtimeRepo.count({ where: { doctor_id: undefined } }) || 20;
+            return {
+                branchName: b.name,
+                utilizationRate: apps.length > 0 ? Math.min(100, Math.round((apps.length / 20) * 100)) : 0,
+                avgResponseTime: null // Not tracked in database
+            };
+        }));
 
         return {
             statusOverview,
             doctorKPIs,
-            hourlyDistribution,
+            hourlyDistribution: hourlyDistribution.map(h => ({ hour: h.hour, count: Number(h.count) })),
             branchPerformance,
         };
     }
 
-    /**
-     * Combined endpoint - returns everything
-     */
     async getFullDashboard(period: string = 'monthly') {
         const [financial, services, patients, performance] = await Promise.all([
             this.getFinancialOverview(period),
@@ -388,12 +464,6 @@ export class DashboardService {
             this.getPatientAnalytics(period),
             this.getPerformanceTracking(),
         ]);
-
-        return {
-            financial,
-            services,
-            patients,
-            performance,
-        };
+        return { financial, services, patients, performance };
     }
 }

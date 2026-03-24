@@ -27,8 +27,9 @@ function App() {
     const [isBooked, setIsBooked] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState(null);
+    const [statusLoading, setStatusLoading] = useState(false);
     const [selectedStates, setSelectedStates] = useState([
-        'onthyfly', 'confirmed', 'arrived', 'in_chair', 'in_payment', 'paid', 'closed'
+        'onthyfly', 'confirmed', 'arrived', 'in_chair', 'in_payment', 'paid', 'visit_closed'
     ]);
 
     // Custom Hooks
@@ -157,6 +158,29 @@ function App() {
         return true;
     };
 
+    // Handle appointment status change
+    const handleStatusChange = async (newState) => {
+        if (!editingAppointment?.id) return;
+
+        // "Arrived" → open Odoo only, no status update
+        if (newState === 'arrived') {
+            window.open(`http://72.62.16.223:8019/odoo/action-498/${editingAppointment.id}`, '_blank');
+            return;
+        }
+
+        setStatusLoading(true);
+        try {
+            await bookingAPI.updateAppointmentStatus(editingAppointment.id, newState);
+            setEditingAppointment(prev => ({ ...prev, state: newState }));
+            await refetch();
+        } catch (error) {
+            console.error('Error updating appointment status:', error);
+            alert('Failed to update status. Please try again.');
+        } finally {
+            setStatusLoading(false);
+        }
+    };
+
     // Handle appointment deletion
     const handleDeleteAppointment = async (appointmentId) => {
         if (!appointmentId) {
@@ -199,12 +223,15 @@ function App() {
 
         const mobile = formData.get('mobile');
         const nationalId = formData.get('nationalId');
+        const idType = formData.get('idType');
+        const nationalityId = formData.get('nationalityId');
         const dob = formData.get('dob');
         const gender = formData.get('gender');
         const age = formData.get('age');
         const additionalPhone = formData.get('additionalPhone');
         const notes = formData.get('notes');
         const patientId = formData.get('patientId');
+        const patientSrcId = formData.get('patientSrcId') ? parseInt(formData.get('patientSrcId')) : null;
 
         // Collect slot IDs
         const key = `${selectedSlot.doctor.id}_${selectedSlot.date}`;
@@ -238,6 +265,8 @@ function App() {
                     lastName,
                     mobile,
                     nationalId,
+                    idType,
+                    nationalityId: nationalityId ? parseInt(nationalityId) : null,
                     dob,
                     gender,
                     age,
@@ -260,8 +289,8 @@ function App() {
                 // Include id in the body as well, just in case
                 await bookingAPI.updateAppointment(editingAppointment.id, { ...appointmentData, id: editingAppointment.id });
             } else {
-                // Create new appointment
-                await bookingAPI.createAppointment(appointmentData);
+                // Create new appointment - default state is onthyfly
+                await bookingAPI.createAppointment({ ...appointmentData, state: 'onthyfly', patientSrcId });
             }
 
             setIsBooked(true);
@@ -412,6 +441,8 @@ function App() {
                 editMode={editMode}
                 editingAppointment={editingAppointment}
                 onDelete={handleDeleteAppointment}
+                onStatusChange={handleStatusChange}
+                statusLoading={statusLoading}
             />
         </div>
     );

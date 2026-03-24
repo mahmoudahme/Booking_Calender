@@ -40,4 +40,8 @@ export class UpdateAppointmentDto {
     @Type(() => PatientDetailsDto)
     @IsOptional()
     patientDetails?: PatientDetailsDto;
+
+    @IsString()
+    @IsOptional()
+    state?: string;
 }

@@ -69,12 +69,6 @@ export class OpdRegistrationModel {
   reg_seq!: string | null;
 
   @Column({ nullable: true })
-  mfn!: string | null;
-
-  @Column({ nullable: true })
-  mrn!: string | null;
-
-  @Column({ nullable: true })
   patient_name!: string | null;
 
   @Column({ nullable: true })
@@ -118,9 +112,6 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   how_you_find_us!: string | null;
-
-  @Column({ nullable: true })
-  src_of_business!: string | null;
 
   @Column({ nullable: true })
   status!: string | null;
@@ -322,5 +313,20 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   search_mobile!: number | null;
+
+  @Column({ nullable: true })
+  patient_source!: number | null;
+
+  @Column({ nullable: true })
+  schedule_reason!: string | null;
+
+  @Column({ nullable: true })
+  stamped_pdf_filename!: string | null;
+
+  @Column({ nullable: true })
+  is_stamped!: boolean | null;
+
+  @Column({ nullable: true })
+  patient_seq!: string | null;
 
 }

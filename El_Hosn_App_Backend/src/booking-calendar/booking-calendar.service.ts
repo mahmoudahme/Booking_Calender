@@ -7,6 +7,9 @@ import { ResPartner } from '../entities/entities/ResPartner.entity';
 import { DoctorSpecialityModel } from '../entities/entities/DoctorSpecialityModel.entity';
 import { PatientModel } from '../entities/entities/PatientModel.entity';
 import { SubtimeModel } from '../entities/entities/SubtimeModel.entity';
+import { CampaginsSources } from '../entities/entities/CampaginsSources.entity';
+import { ResCompany } from '../entities/entities/ResCompany.entity';
+import { ResCountry } from '../entities/entities/ResCountry.entity';
 import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
 
 @Injectable()
@@ -24,19 +27,63 @@ export class BookingCalendarService {
         private readonly patientRepository: Repository<PatientModel>,
         @InjectRepository(SubtimeModel)
         private readonly subtimeRepository: Repository<SubtimeModel>,
+        @InjectRepository(CampaginsSources)
+        private readonly campaignSourcesRepository: Repository<CampaginsSources>,
+        @InjectRepository(ResCompany)
+        private readonly companyRepository: Repository<ResCompany>,
+        @InjectRepository(ResCountry)
+        private readonly countryRepository: Repository<ResCountry>,
     ) { }
 
-    async getDoctors() {
-        const doctors = await this.doctorRepository.find({
-            relations: ['partner', 'doctorSpeciality'],
-        });
-
-        return doctors.map((doc) => ({
-            id: doc.id,
-            name: doc.partner?.name || 'Unknown Doctor',
-            specialty: doc.doctorSpeciality?.name || 'General Dentist',
-            image: `https://i.pravatar.cc/150?u=${doc.id}`, // Placeholder as requested or if entity has image
+    async getCountries() {
+        const countries = await this.countryRepository.find({ order: { id: 'ASC' } });
+        return countries.map(c => ({
+            id: c.id,
+            name: typeof c.name === 'object' ? (c.name?.en_US || c.name?.ar_001 || Object.values(c.name)[0] || '') : c.name,
+            code: c.code,
         }));
+    }
+
+    async getCampaignSources() {
+        const sources = await this.campaignSourcesRepository.find({ order: { id: 'ASC' } });
+        return sources.map(s => ({ id: s.id, name: s.name }));
+    }
+
+    async getBranches() {
+        const branches = await this.companyRepository.find({
+            select: ['id', 'name'],
+            order: { id: 'ASC' },
+        });
+        return branches.map(b => ({ id: b.id, name: b.name }));
+    }
+
+    async getDoctors() {
+        const [doctors, branches] = await Promise.all([
+            this.doctorRepository.find({ relations: ['partner', 'doctorSpeciality'] }),
+            this.companyRepository.find({ select: ['id', 'name'] }),
+        ]);
+
+        const branchMap = new Map(branches.map(b => [b.id, b.name]));
+
+        // Collect partner IDs to fetch company_id in bulk
+        const partnerIds = doctors.map(d => d.partner_id).filter(Boolean);
+        const partners = partnerIds.length > 0
+            ? await this.partnerRepository.find({ where: { id: In(partnerIds) }, select: ['id', 'company_id'] })
+            : [];
+        const partnerCompanyMap = new Map(partners.map(p => [p.id, p.company_id]));
+
+        return doctors.map((doc) => {
+            const companyId = partnerCompanyMap.get(doc.partner_id) || null;
+            const companyName = companyId ? (branchMap.get(companyId) || null) : null;
+            return {
+                id: doc.id,
+                name: doc.partner?.name || 'Unknown Doctor',
+                specialty: doc.doctorSpeciality?.name || 'General Dentist',
+                image: `https://i.pravatar.cc/150?u=${doc.id}`,
+                companyId,
+                companyName,
+            };
+        });
     }
 
     async getAppointments(startDate: Date, endDate: Date, doctorIds?: number[]) {
@@ -139,7 +186,7 @@ export class BookingCalendarService {
                         if (s === 'in_chair') return 'purple';
                         if (s === 'in_payment') return 'orange';
                         if (s === 'paid') return 'green';
-                        if (s === 'closed') return 'pink';
+                        if (['closed', 'visit_closed'].includes(s)) return 'pink';
                         return 'blue'; // Default
                     };
 
@@ -203,12 +250,12 @@ export class BookingCalendarService {
     }
 
     async createAppointment(data: CreateAppointmentDto) {
-        let { doctorId, patientName, date, time, duration, notes, patientId, slotIds, patientDetails } = data;
+        let { doctorId, patientName, date, time, duration, notes, patientId, slotIds, patientDetails, patientSrcId } = data;
         const start = new Date(`${date}T${time}`);
         const slotCount = Math.max(1, Math.floor(duration / 15));
         const dayName = start.toLocaleDateString('en-US', { weekday: 'long' });
 
-        // --- 1. HANDLE PATIENT (Link existing or Create new) ---
+        // --- 1. HANDLE PATIENT (Link existing only, no new patient creation) ---
         let patient;
         if (patientId) {
             patient = await this.patientRepository.findOne({ where: { id: patientId } });
@@ -226,42 +273,6 @@ export class BookingCalendarService {
                 patient.english_name = patientName || patient.english_name;
                 await this.patientRepository.save(patient);
             }
-        }
-
-        if (!patient) {
-            // Create a New Patient for Odoo
-            let partner = await this.partnerRepository.findOne({ where: { name: patientName } });
-            if (!partner) {
-                partner = await this.partnerRepository.save(this.partnerRepository.create({
-                    name: patientName,
-                    active: true,
-                    is_company: false,
-                    type: 'contact',
-                    company_id: 1,
-                    lang: 'en_US',
-                    autopost_bills: 'never',
-                    group_rfq: 'one',
-                    group_on: 'partner'
-                }));
-            }
-
-            patient = await this.patientRepository.save(this.patientRepository.create({
-                partner_id: partner.id,
-                english_name: patientName,
-                first_name: patientDetails?.firstName || patientName.split(' ')[0],
-                middle_name: patientDetails?.middleName,
-                last_name: patientDetails?.lastName || patientName.split(' ').slice(1).join(' '),
-                mobile: patientDetails?.mobile,
-                id_number: patientDetails?.nationalId,
-                date_of_birth: patientDetails?.dob ? new Date(patientDetails.dob) : null,
-                gender: patientDetails?.gender ? patientDetails.gender.toLowerCase() : null,
-                age: patientDetails?.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : null,
-                mrn: `MRN-${Math.floor(100000 + Math.random() * 900000)}`,
-                create_date: new Date(),
-                write_date: new Date(),
-                create_uid: 1,
-                write_uid: 1
-            }));
         }
 
         const createdAppointments = [];
@@ -292,17 +303,32 @@ export class BookingCalendarService {
 
             const appointment = this.appointmentRepository.create({
                 doctor_id: doctorId,
-                patient_id: patient.id,
+                patient_id: patient?.id || null,
                 patient_name: patientName,
                 english_name: patientName,
+                name: patientName,
+                new_or_exist: patientId ? 'exist' : 'new_reg',
                 appointment_date: toUTC(chunkStart),
                 end_date: toUTC(chunkEnd),
                 subtime: slot ? slot.id : null,
                 search_date: toUTC(chunkStart),
                 notes: notes,
-                appointment_state: 'confirmed',
+                appointment_state: 'onthyfly',
                 status: 'scheduled',
+                patient_source: patientSrcId || null,
                 company: 1,
+                // Patient personal data
+                mobile: patientDetails?.mobile || patient?.mobile || null,
+                phone_number: patientDetails?.mobile || patient?.mobile || null,
+                gender: patientDetails?.gender ? (patientDetails.gender.toLowerCase() === 'male' ? 'Male' : 'Female') : (patient?.gender || null),
+                age: patientDetails?.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : (patient?.age || null),
+                vat: patientDetails?.nationalId || patient?.id_number || null,
+                id_type: patientDetails?.idType || null,
+                nationality_id: patientDetails?.nationalityId ? Number(patientDetails.nationalityId) : null,
+                patient_nationality: patientDetails?.nationalityId ? Number(patientDetails.nationalityId) : null,
+                nationality: patientDetails?.nationalityId ? Number(patientDetails.nationalityId) : null,
+                date_of_birth: patientDetails?.dob ? new Date(patientDetails.dob) : (patient?.date_of_birth || null),
+                patient_seq: patient?.patient_seq || null,
                 create_uid: 1,
                 write_uid: 1,
                 create_date: new Date(),
@@ -332,7 +358,7 @@ export class BookingCalendarService {
             if (s === 'in_chair') return 'purple';
             if (s === 'in_payment') return 'orange';
             if (s === 'paid') return 'green';
-            if (s === 'closed') return 'pink';
+            if (['closed', 'visit_closed'].includes(s)) return 'pink';
             return 'blue';
         };
 
@@ -739,6 +765,19 @@ export class BookingCalendarService {
                 patient = await this.patientRepository.findOne({ where: { id: appointment.patient_id } });
             }
 
+            // If no patient linked, parse name from OPD record
+            const opdNameParts = (appointment.patient_name || appointment.english_name || '').trim().split(/\s+/);
+            const opdFirstName  = opdNameParts[0] || '';
+            const opdMiddleName = opdNameParts.length > 2 ? opdNameParts.slice(1, -1).join(' ') : '';
+            const opdLastName   = opdNameParts.length > 1 ? opdNameParts[opdNameParts.length - 1] : '';
+
+            const normalizeGender = (g: string | null) => {
+                const s = (g || '').toLowerCase().trim();
+                if (s === 'male')   return 'Male';
+                if (s === 'female') return 'Female';
+                return '';
+            };
+
             return {
                 success: true,
                 message: 'APPOINTMENT_RETRIEVED_SUCCESS',
@@ -752,18 +791,21 @@ export class BookingCalendarService {
                     date: aDateStr,
                     notes: appointment.notes,
                     state: appointment.appointment_state,
+                    patientSrcId: appointment.patient_source || null,
                     patientDetails: {
-                        firstName: patient?.first_name || '',
-                        middleName: patient?.middle_name || '',
-                        lastName: patient?.last_name || '',
-                        mobile: patient?.mobile || appointment.mobile || '',
-                        nationalId: patient?.id_number || appointment.id_number || '',
-                        dob: patient?.date_of_birth ? new Date(patient.date_of_birth).toISOString().split('T')[0] :
-                            appointment.date_of_birth ? new Date(appointment.date_of_birth).toISOString().split('T')[0] : '',
-                        gender: patient?.gender === 'male' ? 'Male' :
-                            patient?.gender === 'female' ? 'Female' :
-                                appointment.gender === 'male' ? 'Male' :
-                                    appointment.gender === 'female' ? 'Female' : '',
+                        firstName:  patient?.first_name  || opdFirstName,
+                        middleName: patient?.middle_name || opdMiddleName,
+                        lastName:   patient?.last_name   || opdLastName,
+                        mobile:     patient?.mobile      || appointment.mobile || appointment.phone_number || '',
+                        nationalId: patient?.id_number   || appointment.vat   || appointment.id_number   || '',
+                        idType: appointment.id_type || '',
+                        nationalityId: appointment.nationality || appointment.patient_nationality || appointment.nationality_id || null,
+                        dob: patient?.date_of_birth
+                            ? new Date(patient.date_of_birth).toISOString().split('T')[0]
+                            : appointment.date_of_birth
+                                ? new Date(appointment.date_of_birth).toISOString().split('T')[0]
+                                : '',
+                        gender: patient ? normalizeGender(patient.gender) : normalizeGender(appointment.gender),
                         age: patient?.age || appointment.age || '',
                         additionalPhone: ''
                     }
@@ -773,6 +815,17 @@ export class BookingCalendarService {
             console.error('Error fetching appointment by ID:', error);
             throw error;
         }
+    }
+
+    /**
+     * Get the last appointment's patient_source for a given patient
+     */
+    async getLastAppointmentByPatient(patientId: number) {
+        const last = await this.appointmentRepository.findOne({
+            where: { patient_id: patientId },
+            order: { id: 'DESC' },
+        });
+        return { patientSrcId: last?.patient_source || null };
     }
 
     /**
@@ -819,9 +872,13 @@ export class BookingCalendarService {
             // Update basic appointment fields if provided
             if (patientDetails) {
                 appointment.mobile = patientDetails.mobile || appointment.mobile;
-                appointment.id_number = patientDetails.nationalId || appointment.id_number;
+                appointment.vat = patientDetails.nationalId || appointment.vat;
+                appointment.id_type = patientDetails.idType || appointment.id_type;
+                appointment.nationality_id = patientDetails.nationalityId ? Number(patientDetails.nationalityId) : appointment.nationality_id;
+                appointment.patient_nationality = patientDetails.nationalityId ? Number(patientDetails.nationalityId) : appointment.patient_nationality;
+                appointment.nationality = patientDetails.nationalityId ? Number(patientDetails.nationalityId) : appointment.nationality;
                 appointment.date_of_birth = patientDetails.dob ? new Date(patientDetails.dob) : appointment.date_of_birth;
-                appointment.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : appointment.gender;
+                appointment.gender = patientDetails.gender ? (patientDetails.gender.toLowerCase() === 'male' ? 'Male' : 'Female') : appointment.gender;
                 appointment.age = patientDetails.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : appointment.age;
             }
 
@@ -850,6 +907,18 @@ export class BookingCalendarService {
             console.error('Error updating appointment:', error);
             throw error;
         }
+    }
+
+    /**
+     * Update only the appointment_state field
+     */
+    async updateAppointmentState(appointmentId: number, state: string) {
+        const appointment = await this.appointmentRepository.findOne({ where: { id: appointmentId } });
+        if (!appointment) throw new Error('APPOINTMENT_NOT_FOUND');
+        appointment.appointment_state = state;
+        appointment.write_date = new Date();
+        await this.appointmentRepository.save(appointment);
+        return { success: true, message: 'STATUS_UPDATED', data: { id: appointmentId, state } };
     }
 
     /**

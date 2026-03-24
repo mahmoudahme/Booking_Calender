@@ -20,7 +20,7 @@ export class UomUom {
   @Column({ nullable: true })
   parent_path!: string | null;
 
-  @Column()
+  @Column({ type: 'jsonb' })
   name!: any;
 
   @Column()
@@ -40,5 +40,8 @@ export class UomUom {
 
   @Column({ nullable: true })
   package_type_id!: number | null;
+
+  @Column({ nullable: true })
+  is_pos_groupable!: boolean | null;
 
 }

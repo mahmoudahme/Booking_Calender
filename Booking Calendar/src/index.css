@@ -1,12 +1,12 @@
 :root {
   --primary: #1fa391;
   --primary-hover: #168a7a;
-  --bg-main: #f0f2f5;
-  --sidebar-bg: #ffffff;
-  --scheduler-bg: #ffffff;
+  --bg-main: #d8dce4;
+  --sidebar-bg: #eef0f4;
+  --scheduler-bg: #eef0f4;
   --text-main: #1a1a1b;
   --text-muted: #65676b;
-  --border-color: #e4e6eb;
+  --border-color: #cdd0d8;
   --appointment-blue: #e7f3ff;
   --appointment-pink: #fdf2f2;
   --appointment-green: #e6f6ed;
@@ -21,10 +21,10 @@
   --appointment-orange-text: #ea580c;
   --appointment-gray-text: #4b5563;
 
-  --header-bg: #ffffff;
-  --gutter-bg: #f8f9fa;
+  --header-bg: #eef0f4;
+  --gutter-bg: #e4e7ed;
   --modal-bg: #ffffff;
-  --input-bg: #f0f2f5;
+  --input-bg: #e4e7ed;
   --header-height: 64px;
   --sidebar-width: 300px;
 }
@@ -226,14 +226,14 @@ header {
   justify-content: flex-end;
   padding-right: 8px;
   font-size: 0.65rem;
-  color: #adb5bd;
-  border-bottom: 1px dotted #f1f3f4;
+  color: #8a9099;
+  border-bottom: 1px solid #c2c7d0;
 }
 
 .time-label-row.hour-mark {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-main);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #a0a7b4;
 }
 
 /* Doctor Columns */
@@ -272,7 +272,7 @@ header {
   position: relative;
   background-image:
     linear-gradient(var(--border-color) 1px, transparent 1px),
-    linear-gradient(#f0f0f0 1px, transparent 1px);
+    linear-gradient(#c8cdd6 1px, transparent 1px);
   background-size: 100% 160px, 100% 40px;
 }
 
@@ -281,10 +281,18 @@ header {
   width: 100%;
   cursor: crosshair;
   user-select: none;
+  border-bottom: 1px solid #c8cdd6;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.slot-placeholder:nth-child(4n) {
+  border-bottom: 1px solid #a8adb8;
 }
 
 .slot-placeholder:hover {
-  background: rgba(31, 163, 145, 0.05);
+  background: rgba(31, 163, 145, 0.12);
+  border-bottom-color: var(--primary);
 }
 
 .slot-placeholder:active {
@@ -1132,6 +1140,32 @@ header {
   /* Reduced from 800px to 600px width, added height limit */
 }
 
+/* Keep modal colors original regardless of theme changes */
+.modal-content,
+.modal-content-wide {
+  --bg-secondary: #f8f9fa;
+  --bg: #ffffff;
+  --input-bg: #f0f2f5;
+  --border: #e4e6eb;
+  --border-color: #e4e6eb;
+  background: #ffffff;
+}
+
+.modal-content .modal-footer,
+.modal-content-wide .modal-footer {
+  background: #f0f2f5;
+}
+
+.modal-content .form-group input,
+.modal-content .form-group textarea,
+.modal-content .form-group select,
+.modal-content-wide .form-group input,
+.modal-content-wide .form-group textarea,
+.modal-content-wide .form-group select {
+  background: #f0f2f5;
+  border-color: #e4e6eb;
+}
+
 
 
 /* Radio Button Styles */
@@ -1165,11 +1199,11 @@ input[type='radio'] {
 
 /* Background Secondary */
 :root {
-  --bg-secondary: #f8f9fa;
-  --bg: #ffffff;
+  --bg-secondary: #e4e7ed;
+  --bg: #eef0f4;
   --text: #1a1a1b;
   --text-secondary: #65676b;
-  --border: #e4e6eb;
+  --border: #cdd0d8;
 }
 
 [data-theme='dark'] {

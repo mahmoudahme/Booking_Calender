@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'; // Added useEff
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, CheckCircle2, ChevronDown, Search, X } from 'lucide-react';
 import bookingAPI from '../../services/api'; // Import API
+import StatusStepper from './StatusStepper';
 
 const AppointmentModal = ({
     showModal,
@@ -17,13 +18,24 @@ const AppointmentModal = ({
     onClose,
     editMode = false,
     editingAppointment = null,
-    onDelete = null
+    onStatusChange = null,
+    statusLoading = false,
 }) => {
     const [isNewPatient, setIsNewPatient] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPatient, setSelectedPatient] = useState(null);
-    const [searchResults, setSearchResults] = useState([]); // State for search results
+    const [searchResults, setSearchResults] = useState([]);
     const [notes, setNotes] = useState('');
+    const [campaignSources, setCampaignSources] = useState([]);
+    const [patientSrcId, setPatientSrcId] = useState('');
+    const [patientSrcLocked, setPatientSrcLocked] = useState(false);
+    const [countries, setCountries] = useState([]);
+
+    // Fetch campaign sources and countries once on mount
+    useEffect(() => {
+        bookingAPI.getCampaignSources().then(data => setCampaignSources(data));
+        bookingAPI.getCountries().then(data => setCountries(data));
+    }, []);
 
     // Controlled Form State (matching Backend API - camelCase)
     const [patientData, setPatientData] = useState({
@@ -32,6 +44,8 @@ const AppointmentModal = ({
         lastName: '',
         mobile: '',
         nationalId: '',
+        idType: '',
+        nationalityId: '',
         dob: '',
         age: '',
         gender: '',
@@ -48,12 +62,13 @@ const AppointmentModal = ({
                 lastName: editingAppointment.patientDetails?.lastName || '',
                 mobile: editingAppointment.patientDetails?.mobile || '',
                 nationalId: editingAppointment.patientDetails?.nationalId || '',
+                idType: editingAppointment.patientDetails?.idType || '',
+                nationalityId: editingAppointment.patientDetails?.nationalityId || '',
                 dob: editingAppointment.patientDetails?.dob || '',
                 age: editingAppointment.patientDetails?.age || '',
                 gender: editingAppointment.patientDetails?.gender || '',
                 additionalPhone: editingAppointment.patientDetails?.additionalPhone || ''
             });
-
             // Set patient selection
             if (editingAppointment.patientId) {
                 setIsNewPatient(false);
@@ -68,6 +83,11 @@ const AppointmentModal = ({
 
             // Set notes
             setNotes(editingAppointment.notes || '');
+
+            // Set patient source (locked if it has a value)
+            const srcId = editingAppointment.patientSrcId ? String(editingAppointment.patientSrcId) : '';
+            setPatientSrcId(srcId);
+            setPatientSrcLocked(!!srcId);
         } else {
             // Reset form when not in edit mode
             setIsNewPatient(true);
@@ -75,9 +95,11 @@ const AppointmentModal = ({
             setSelectedPatient(null);
             setSearchResults([]);
             setNotes('');
+            setPatientSrcId('');
+            setPatientSrcLocked(false);
             setPatientData({
                 firstName: '', middleName: '', lastName: '',
-                mobile: '', nationalId: '', dob: '', age: '',
+                mobile: '', nationalId: '', idType: '', nationalityId: '', dob: '', age: '',
                 gender: '', additionalPhone: ''
             });
         }
@@ -101,7 +123,7 @@ const AppointmentModal = ({
         return () => clearTimeout(timer);
     }, [searchTerm, isNewPatient, selectedPatient]);
 
-    const handlePatientSelect = (patient) => {
+    const handlePatientSelect = async (patient) => {
         setSelectedPatient(patient);
         setSearchTerm(patient.name);
         // Map from Backend API response (camelCase)
@@ -117,6 +139,17 @@ const AppointmentModal = ({
             additionalPhone: ''
         });
         setSearchResults([]); // Hide dropdown after selection
+
+        // Auto-fill patient source from their last appointment
+        if (patient.id) {
+            const result = await bookingAPI.getLastAppointmentByPatient(patient.id);
+            if (result?.patientSrcId) {
+                setPatientSrcId(String(result.patientSrcId));
+                setPatientSrcLocked(true);
+            } else {
+                setPatientSrcLocked(false);
+            }
+        }
     };
 
     const handleInputChange = (e) => {
@@ -179,9 +212,19 @@ const AppointmentModal = ({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
+                    style={{ position: 'relative' }}
                 >
                     {!isBooked ? (
                         <>
+                            {/* Status Stepper - shown only when editing an existing appointment */}
+                            {editMode && editingAppointment?.state && onStatusChange && (
+                                <StatusStepper
+                                    currentStatus={editingAppointment.state}
+                                    onStatusChange={onStatusChange}
+                                    isLoading={statusLoading}
+                                />
+                            )}
+
                             <div className="modal-header">
                                 <h2>{editMode ? 'Edit Appointment' : 'New Appointment'}</h2>
                                 <button
@@ -194,6 +237,28 @@ const AppointmentModal = ({
                             </div>
 
                             <form onSubmit={onSubmit}>
+                                {/* When in_chair: overlay to block interaction */}
+                                {editMode && editingAppointment?.state === 'in_chair' && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        inset: 0,
+                                        zIndex: 10,
+                                        borderRadius: '12px',
+                                        background: 'rgba(255,255,255,0.55)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        backdropFilter: 'blur(1px)',
+                                        marginTop: '88px', // below stepper + header
+                                    }}>
+                                        <span style={{ fontSize: '2rem' }}>🦷</span>
+                                        <span style={{ fontWeight: '600', color: '#7c3aed', fontSize: '1rem' }}>
+                                            Patient is In Chair — editing disabled
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="modal-body">
                                     {/* HIDDEN INPUT FOR PATIENT ID */}
                                     <input type="hidden" name="patientId" value={selectedPatient?.id || ''} />
@@ -285,10 +350,11 @@ const AppointmentModal = ({
                                                         setIsNewPatient(true);
                                                         setSelectedPatient(null);
                                                         setSearchTerm('');
+                                                        setPatientSrcLocked(false);
                                                         // Reset form
                                                         setPatientData({
                                                             firstName: '', middleName: '', lastName: '',
-                                                            mobile: '', nationalId: '', dob: '', age: '',
+                                                            mobile: '', nationalId: '', idType: '', nationalityId: '', dob: '', age: '',
                                                             gender: '', additionalPhone: ''
                                                         });
                                                     }}
@@ -421,11 +487,33 @@ const AppointmentModal = ({
                                                     </div>
 
                                                     <div className="form-group">
-                                                        <label>National ID</label>
+                                                        <label>ID Type</label>
+                                                        <select
+                                                            name="idType"
+                                                            value={patientData.idType}
+                                                            onChange={handleInputChange}
+                                                        >
+                                                            <option value="">-- Select --</option>
+                                                            <option value="national_id">National ID</option>
+                                                            <option value="iqama">Iqama</option>
+                                                            <option value="passport">Passport</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="form-group">
+                                                        <label>
+                                                            {patientData.idType === 'iqama'    ? 'Iqama Number'      :
+                                                             patientData.idType === 'passport' ? 'Passport Number'   :
+                                                                                                 'National ID Number'}
+                                                        </label>
                                                         <input
                                                             type="text"
                                                             name="nationalId"
-                                                            placeholder="National ID"
+                                                            placeholder={
+                                                                patientData.idType === 'iqama'    ? 'Iqama Number'    :
+                                                                patientData.idType === 'passport' ? 'Passport Number' :
+                                                                                                    'National ID Number'
+                                                            }
                                                             value={patientData.nationalId}
                                                             onChange={handleInputChange}
                                                         />
@@ -477,9 +565,52 @@ const AppointmentModal = ({
                                                             onChange={handleInputChange}
                                                         />
                                                     </div>
+
+                                                    {/* Nationality - searchable */}
+                                                    <div className="form-group">
+                                                        <label>Nationality</label>
+                                                        <select
+                                                            name="nationalityId"
+                                                            value={patientData.nationalityId}
+                                                            onChange={handleInputChange}
+                                                        >
+                                                            <option value="">-- Select --</option>
+                                                            {countries.map(c => (
+                                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
                                                 </div>
                                             </>
                                         )}
+
+                                        {/* Patient Source */}
+                                        <div className="form-group" style={{ marginTop: '1rem' }}>
+                                            <label>
+                                                Patient Source <span style={{ color: '#d32f2f' }}>*</span>
+                                                {patientSrcLocked && (
+                                                    <span style={{ marginLeft: '8px', fontSize: '0.75rem', color: '#6b7280', fontWeight: 400 }}>
+                                                        🔒 From the last visit
+                                                    </span>
+                                                )}
+                                            </label>
+                                            {patientSrcLocked && (
+                                                <input type="hidden" name="patientSrcId" value={patientSrcId} />
+                                            )}
+                                            <select
+                                                name={patientSrcLocked ? '' : 'patientSrcId'}
+                                                value={patientSrcId}
+                                                onChange={(e) => setPatientSrcId(e.target.value)}
+                                                required={!patientSrcLocked}
+                                                disabled={patientSrcLocked}
+                                                style={patientSrcLocked ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
+                                            >
+                                                <option value="">-- Select Source --</option>
+                                                {campaignSources.map(src => (
+                                                    <option key={src.id} value={src.id}>{src.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
 
                                         {/* Reason for Visit */}
                                         <div className="form-group" style={{ marginTop: '1rem' }}>
@@ -496,36 +627,35 @@ const AppointmentModal = ({
                                     </div>
                                 </div>
 
-                                <div className="modal-footer" style={{ display: 'flex', justifyContent: editMode ? 'space-between' : 'flex-end' }}>
-                                    {editMode && onDelete && (
+                                <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                    {editMode && editingAppointment?.id && (
                                         <button
                                             type="button"
-                                            className="btn btn-danger"
-                                            onClick={() => {
-                                                if (window.confirm('Are you sure you want to delete this appointment?')) {
-                                                    console.log('Deleting appointment object:', editingAppointment);
-                                                    if (!editingAppointment?.id) {
-                                                        alert('Error: Could not find appointment ID to delete');
-                                                        return;
-                                                    }
-                                                    onDelete(editingAppointment.id);
-                                                }
+                                            onClick={() => window.open(`http://72.62.16.223:8019/odoo/action-498/${editingAppointment.id}`, '_blank')}
+                                            style={{
+                                                background: '#f59e0b',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                padding: '8px 16px',
+                                                cursor: 'pointer',
+                                                fontWeight: '600',
+                                                fontSize: '0.9rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
                                             }}
-                                            style={{ background: '#d32f2f', color: 'white' }}
                                         >
-                                            Delete
+                                            🔁 Cancel & Reschedule
                                         </button>
                                     )}
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                                        <button
-                                            type="submit"
-                                            className="btn btn-primary"
-                                            disabled={!editMode && selectedSlot && !isSlotAvailable(selectedSlot.doctor.id, selectedSlot.time, selectedDuration, selectedSlot.date)}
-                                        >
-                                            {editMode ? 'Update Appointment' : 'Confirm Booking'}
-                                        </button>
-                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="btn btn-primary"
+                                        disabled={!editMode && selectedSlot && !isSlotAvailable(selectedSlot.doctor.id, selectedSlot.time, selectedDuration, selectedSlot.date)}
+                                    >
+                                        {editMode ? 'Update Appointment' : 'Confirm Booking'}
+                                    </button>
                                 </div>
                             </form>
                         </>

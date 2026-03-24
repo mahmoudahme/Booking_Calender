@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Query, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Query, Param } from '@nestjs/common';
 import { BookingCalendarService } from './booking-calendar.service';
 import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
 
@@ -6,9 +6,24 @@ import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
 export class BookingCalendarController {
     constructor(private readonly bookingCalendarService: BookingCalendarService) { }
 
+    @Get('branches')
+    async getBranches() {
+        return this.bookingCalendarService.getBranches();
+    }
+
     @Get('doctors')
     async getDoctors() {
         return this.bookingCalendarService.getDoctors();
+    }
+
+    @Get('countries')
+    async getCountries() {
+        return this.bookingCalendarService.getCountries();
+    }
+
+    @Get('campaign-sources')
+    async getCampaignSources() {
+        return this.bookingCalendarService.getCampaignSources();
     }
 
     @Get('appointments')
@@ -53,6 +68,11 @@ export class BookingCalendarController {
         return this.bookingCalendarService.searchPatients(term);
     }
 
+    @Get('patients/:id/last-appointment')
+    async getLastAppointmentByPatient(@Param('id') id: string) {
+        return this.bookingCalendarService.getLastAppointmentByPatient(parseInt(id));
+    }
+
     @Post('seed')
     async seed() {
         return this.bookingCalendarService.seedData();
@@ -91,6 +111,11 @@ export class BookingCalendarController {
     @Put('appointments/:id')
     async updateAppointment(@Param('id') id: string, @Body() data: UpdateAppointmentDto) {
         return this.bookingCalendarService.updateAppointment(parseInt(id), data);
+    }
+
+    @Patch('appointments/:id/status')
+    async updateAppointmentStatus(@Param('id') id: string, @Body() body: { state: string }) {
+        return this.bookingCalendarService.updateAppointmentState(parseInt(id), body.state);
     }
 
     @Delete('appointments/:id')

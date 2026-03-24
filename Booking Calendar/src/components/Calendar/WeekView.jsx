@@ -25,7 +25,8 @@ const WeekView = ({
     onAppointmentClick
 }) => {
     const weekDays = getWeekDays(selectedDate);
-    const activeDoctorId = selectedDoctors[0];
+    const visibleDoctors = doctors.filter(d => selectedDoctors.includes(d.id));
+    const activeDoctorId = visibleDoctors[0]?.id;
 
     return (
         <>
@@ -73,7 +74,7 @@ const WeekView = ({
                                     selectedDuration={selectedDuration}
                                     showModal={false}
                                     style={{
-                                        width: `${100 / selectedDoctors.length}%`,
+                                        width: `${100 / (visibleDoctors.length || 1)}%`,
                                         left: 0,
                                         zIndex: 20
                                     }}
@@ -94,18 +95,18 @@ const WeekView = ({
                                     selectedDuration={selectedDuration}
                                     showModal={showModal}
                                     style={{
-                                        width: `${100 / selectedDoctors.length}%`,
+                                        width: `${100 / (visibleDoctors.length || 1)}%`,
                                         left: 0
                                     }}
                                 />
                             )}
 
-                            {/* Render Appointments for ALL selected doctors */}
+                            {/* Render Appointments for ALL visible doctors */}
                             {appointments
-                                .filter(a => selectedDoctors.includes(a.docId) && a.date === dateStr)
+                                .filter(a => (visibleDoctors.length === 0 || visibleDoctors.some(d => d.id === a.docId)) && a.date === dateStr)
                                 .map(app => {
-                                    const docIndex = selectedDoctors.indexOf(app.docId);
-                                    const laneWidth = 100 / selectedDoctors.length;
+                                    const docIndex = visibleDoctors.findIndex(d => d.id === app.docId);
+                                    const laneWidth = 100 / (visibleDoctors.length || 1);
                                     const leftPos = docIndex * laneWidth;
                                     const doctor = doctors.find(d => d.id === app.docId);
 

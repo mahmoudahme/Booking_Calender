@@ -45,12 +45,6 @@ export class PatientModel {
   mobile!: string | null;
 
   @Column({ nullable: true })
-  mfn!: string | null;
-
-  @Column({ nullable: true })
-  mrn!: string | null;
-
-  @Column({ nullable: true })
   english_name!: string | null;
 
   @Column({ nullable: true })
@@ -187,5 +181,8 @@ export class PatientModel {
 
   @Column({ nullable: true })
   allergies!: string | null;
+
+  @Column({ nullable: true })
+  token_device!: string | null;
 
 }

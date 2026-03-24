@@ -3,14 +3,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // --- Configuration ---
-const TABLE_NAME = 'patient_model'; // Get table name from command line argument
+const TABLE_NAME = 'opd_registration_model'; // Get table name from command line argument
 const DB_HOST = '72.62.16.223';
 const DB_PORT = 5432;
 const DB_USERNAME = 'odoo';
 const DB_PASSWORD = 'odoo';
 const DB_DATABASE = 'Hosn';
 const DB_SCHEMA = 'public';
-const OUTPUT_DIR = './src/entities/entities';
+const OUTPUT_DIR = './src/entities/entities'; 
 
 if (!TABLE_NAME) {
     console.error('❌ Error: Please provide a table name.');
