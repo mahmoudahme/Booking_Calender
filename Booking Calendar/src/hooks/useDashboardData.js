@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const DASHBOARD_API_BASE = 'http://localhost:3000/api/v1/dashboard';
+const DASHBOARD_API_BASE = 'http://72.62.16.223:3000/api/v1/dashboard';
 
 export const useDashboardData = (period = 'monthly') => {
     const [data, setData] = useState(null);
