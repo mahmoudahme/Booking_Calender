@@ -300,23 +300,13 @@ const AppointmentModal = ({
                                         </p>
                                     </div>
 
-                                    {selectedSlot && !isSlotAvailable(selectedSlot.doctor.id, selectedSlot.time, selectedDuration, selectedSlot.date) && (
-                                        <div className="warning-box" style={{ background: '#fff4f4', border: '1px solid #ffcdd2', padding: '10px', borderRadius: '6px', marginBottom: '1rem', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '1.2rem' }}>⚠</span>
-                                            <div>
-                                                <p style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '0.9rem', margin: 0 }}>Doctor Not Available</p>
-                                                <p style={{ color: '#d32f2f', fontSize: '0.8rem', margin: 0 }}>This slot conflicts with an existing appointment.</p>
-                                            </div>
-                                        </div>
-                                    )}
-
                                     {/* Duration Selection */}
                                     {selectedDuration === 60 && (
                                         <div className="form-group">
                                             <label>Duration (Minutes)</label>
                                             <div className="duration-selector">
                                                 {[30, 60, 90, 120].map(duration => {
-                                                    const available = selectedSlot ? isSlotAvailable(selectedSlot.doctor.id, selectedSlot.time, duration, selectedSlot.date) : true;
+                                                    const available = selectedSlot ? isSlotAvailable(selectedSlot.doctor.id, selectedSlot.time, duration, selectedSlot.date, editingAppointment?.id) : true;
                                                     return (
                                                         <button
                                                             key={duration}

@@ -121,15 +121,15 @@ function App() {
     };
 
     // Check if slot is available
-    const isSlotAvailable = (doctorId, startTime, duration, checkDate) => {
+    const isSlotAvailable = (doctorId, startTime, duration, checkDate, excludeId = null) => {
         const [h, m] = startTime.split(':').map(Number);
         const slotStart = h * 60 + m;
         const slotEnd = slotStart + duration;
         const targetDateStr = checkDate || format(selectedDate, 'yyyy-MM-dd');
 
-        // Check appointment conflicts
+        // Check appointment conflicts (exclude current appointment being edited)
         const conflict = appointments
-            .filter(a => a.docId === doctorId && a.date === targetDateStr)
+            .filter(a => a.docId === doctorId && a.date === targetDateStr && a.id !== excludeId)
             .some(app => {
                 const [ah, am] = app.time.split(':').map(Number);
                 const appStart = ah * 60 + am;
