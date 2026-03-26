@@ -95,8 +95,6 @@ export class PatientModel {
   @Column({ nullable: true })
   id_type!: string | null;
 
-  @Column({ nullable: true })
-  id_number!: string | null;
 
   @Column({ nullable: true })
   other_identification_document_types!: string | null;

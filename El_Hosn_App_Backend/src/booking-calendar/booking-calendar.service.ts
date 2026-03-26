@@ -857,7 +857,6 @@ export class BookingCalendarService {
                     patient.middle_name = patientDetails.middleName || patient.middle_name;
                     patient.last_name = patientDetails.lastName || patient.last_name;
                     patient.mobile = patientDetails.mobile || patient.mobile;
-                    patient.id_number = patientDetails.nationalId || patient.id_number;
                     patient.date_of_birth = patientDetails.dob ? new Date(patientDetails.dob) : patient.date_of_birth;
                     patient.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : patient.gender;
                     patient.age = patientDetails.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : patient.age;
