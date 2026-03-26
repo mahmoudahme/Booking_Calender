@@ -167,8 +167,6 @@ export class OpdRegistrationModel {
   @Column({ nullable: true })
   id_type!: string | null;
 
-  @Column({ nullable: true })
-  id_number!: string | null;
 
   @Column({ nullable: true })
   other_identifier_type!: string | null;
@@ -304,12 +302,6 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   phone_number!: string | null;
-
-  @Column({ nullable: true })
-  search_national_id!: number | null;
-
-  @Column({ nullable: true })
-  search_mobile!: number | null;
 
   @Column({ nullable: true })
   patient_source!: number | null;

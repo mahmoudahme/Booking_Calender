@@ -486,7 +486,7 @@ const AppointmentModal = ({
                                                             onChange={handleInputChange}
                                                         >
                                                             <option value="">-- Select --</option>
-                                                            <option value="id">National ID</option>
+                                                            <option value="national_id">National ID</option>
                                                             <option value="iqama">Iqama</option>
                                                             <option value="passport">Passport</option>
                                                         </select>

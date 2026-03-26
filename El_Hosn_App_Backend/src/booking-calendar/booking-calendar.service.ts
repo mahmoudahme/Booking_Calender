@@ -266,7 +266,7 @@ export class BookingCalendarService {
                 patient.middle_name = patientDetails.middleName || patient.middle_name;
                 patient.last_name = patientDetails.lastName || patient.last_name;
                 patient.mobile = patientDetails.mobile || patient.mobile;
-                patient.id_number = patientDetails.nationalId || patient.id_number;
+                patient.passport = patientDetails.nationalId || patient.passport;
                 patient.date_of_birth = patientDetails?.dob ? new Date(patientDetails.dob) : patient.date_of_birth;
                 patient.gender = patientDetails.gender ? patientDetails.gender.toLowerCase() : patient.gender;
                 patient.age = patientDetails?.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : patient.age;
@@ -300,7 +300,7 @@ export class BookingCalendarService {
 
             // Odoo stores in UTC. If we are in Egypt (UTC+2), we subtract 2 hours from local time to store in UTC.
             const toUTC = (d: Date) => new Date(d.getTime() - 2 * 60 * 60000);
-
+            console.log(patientDetails?.idType)
             const appointment = this.appointmentRepository.create({
                 doctor_id: doctorId,
                 patient_id: patient?.id || null,
@@ -322,7 +322,7 @@ export class BookingCalendarService {
                 phone_number: patientDetails?.mobile || patient?.mobile || null,
                 gender: patientDetails?.gender ? (patientDetails.gender.toLowerCase() === 'male' ? 'Male' : 'Female') : (patient?.gender || null),
                 age: patientDetails?.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : (patient?.age || null),
-                vat: patientDetails?.nationalId || patient?.id_number || null,
+                vat: patientDetails?.nationalId || patient?.passport || null,
                 id_type: patientDetails?.idType || null,
                 nationality: patientDetails?.nationalityId ? Number(patientDetails.nationalityId) : null,
                 date_of_birth: patientDetails?.dob ? new Date(patientDetails.dob) : (patient?.date_of_birth || null),
@@ -383,7 +383,7 @@ export class BookingCalendarService {
                     .orWhere('patient.middle_name ILIKE :term', { term: `%${term}%` })
                     .orWhere('patient.last_name ILIKE :term', { term: `%${term}%` })
                     .orWhere('patient.mobile ILIKE :term', { term: `%${term}%` })
-                    .orWhere('patient.id_number ILIKE :term', { term: `%${term}%` })
+                    .orWhere('partner.vat ILIKE :term', { term: `%${term}%` })
                     .orWhere('partner.name ILIKE :term', { term: `%${term}%` });
             }));
         }
@@ -399,8 +399,14 @@ export class BookingCalendarService {
             lastName: p.last_name || p.partner?.name?.split(' ').slice(1).join(' ') || '',
             name: `${p.first_name || ''} ${p.middle_name || ''} ${p.last_name || ''}`.trim() || p.partner?.name || p.english_name || 'Unknown',
             mobile: p.mobile || p.mobile_number || '',
-            nationalId: p.id_number || '',
-            idType: p.id_type || '',
+            nationalId: p.partner?.vat || '',
+            idType: (() => {
+                const t = (p.id_type || '').toLowerCase().trim();
+                if (t === 'national id' || t === 'national_id' || t === 'id') return 'national_id';
+                if (t === 'iqama') return 'iqama';
+                if (t === 'passport') return 'passport';
+                return '';
+            })(),
             nationalityId: p.nationality || null,
             additionalPhone: p.phone_number || p.mobile_number || '',
             dob: p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : '',
@@ -803,7 +809,7 @@ export class BookingCalendarService {
                         middleName: patient?.middle_name || opdMiddleName,
                         lastName:   patient?.last_name   || opdLastName,
                         mobile:     patient?.mobile      || appointment.mobile || appointment.phone_number || '',
-                        nationalId: patient?.id_number   || appointment.vat   || appointment.id_number   || '',
+                        nationalId: (patient as any)?.partner?.vat || appointment.vat || '',
                         idType: appointment.id_type || '',
                         nationalityId: appointment.nationality || null,
                         dob: patient?.date_of_birth
