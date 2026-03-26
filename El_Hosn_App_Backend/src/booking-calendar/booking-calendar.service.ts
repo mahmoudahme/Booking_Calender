@@ -324,8 +324,6 @@ export class BookingCalendarService {
                 age: patientDetails?.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : (patient?.age || null),
                 vat: patientDetails?.nationalId || patient?.id_number || null,
                 id_type: patientDetails?.idType || null,
-                nationality_id: patientDetails?.nationalityId ? Number(patientDetails.nationalityId) : null,
-                patient_nationality: patientDetails?.nationalityId ? Number(patientDetails.nationalityId) : null,
                 nationality: patientDetails?.nationalityId ? Number(patientDetails.nationalityId) : null,
                 date_of_birth: patientDetails?.dob ? new Date(patientDetails.dob) : (patient?.date_of_birth || null),
                 patient_seq: patient?.patient_seq || null,
