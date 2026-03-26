@@ -400,13 +400,7 @@ export class BookingCalendarService {
             name: `${p.first_name || ''} ${p.middle_name || ''} ${p.last_name || ''}`.trim() || p.partner?.name || p.english_name || 'Unknown',
             mobile: p.mobile || p.mobile_number || '',
             nationalId: p.id_number || '',
-            idType: (() => {
-                const t = (p.id_type || '').toLowerCase();
-                if (t === 'national_id' || t === 'national') return 'national_id';
-                if (t === 'iqama') return 'iqama';
-                if (t === 'passport') return 'passport';
-                return p.id_type || '';
-            })(),
+            idType: p.id_type || '',
             nationalityId: p.nationality || null,
             additionalPhone: p.phone_number || p.mobile_number || '',
             dob: p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : '',
