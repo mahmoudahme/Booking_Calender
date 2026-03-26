@@ -1134,7 +1134,7 @@ header {
 
 /* Styles for New Appointment Modal */
 .modal-content-wide {
-  max-width: 800px !important;
+  max-width: 1000px !important;
   max-height: 100vh !important;
   overflow-y: auto !important;
   /* Reduced from 800px to 600px width, added height limit */

@@ -10,12 +10,11 @@ const STEPS = [
     { key: 'visit_closed', label: 'Visit Closed' },
 ];
 
-// Action button config per status: what button to show + what state it moves to
 const ACTION_MAP = {
     onthyfly:   { label: 'Confirm',  nextState: 'confirmed'    },
     confirmed:  { label: 'Arrive',   nextState: 'arrived'      },
     arrived:    { label: 'In Chair', nextState: 'in_chair'     },
-    in_chair:   null, // no action buttons
+    in_chair:   null,
     in_payment: { label: 'Pay',      nextState: 'paid'         },
     paid:       null,
     visit_closed: null,
@@ -23,7 +22,7 @@ const ACTION_MAP = {
 
 const BTN = {
     base: {
-        padding: '7px 18px',
+        padding: '7px 22px',
         border: 'none',
         borderRadius: '6px',
         fontWeight: '600',
@@ -41,53 +40,16 @@ const StatusStepper = ({ currentStatus, onStatusChange, isLoading }) => {
 
     return (
         <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '10px 16px',
             background: 'var(--bg-secondary, #f3f4f6)',
             borderBottom: '1px solid var(--border-color, #e4e6eb)',
-            flexWrap: 'wrap',
         }}>
-            {/* ── Action Buttons (left) ── */}
-            <div style={{ display: 'flex', gap: '8px' }}>
-                {action && (
-                    <>
-                        {/* Primary: advance to next step */}
-                        <button
-                            onClick={() => onStatusChange(action.nextState)}
-                            disabled={isLoading}
-                            style={{
-                                ...BTN.base, ...BTN.primary,
-                                opacity: isLoading ? 0.6 : 1,
-                                cursor: isLoading ? 'not-allowed' : 'pointer',
-                            }}
-                        >
-                            {action.label}
-                        </button>
-
-                        {/* Cancel: move to visit_closed */}
-                        <button
-                            onClick={() => onStatusChange('visit_closed')}
-                            disabled={isLoading}
-                            style={{
-                                ...BTN.base, ...BTN.outline,
-                                opacity: isLoading ? 0.6 : 1,
-                                cursor: isLoading ? 'not-allowed' : 'pointer',
-                            }}
-                        >
-                            Cancel
-                        </button>
-                    </>
-                )}
-            </div>
-
-            {/* ── Status Stepper (right) ── */}
+            {/* ── Row 1: Status Steps ── */}
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                flex: 1,
+                padding: '10px 16px 6px',
                 overflowX: 'auto',
+                gap: '2px',
             }}>
                 {STEPS.map((step, index) => {
                     const isActive = step.key === currentStatus;
@@ -120,6 +82,39 @@ const StatusStepper = ({ currentStatus, onStatusChange, isLoading }) => {
                     );
                 })}
             </div>
+
+            {/* ── Row 2: Action Buttons ── */}
+            {action && (
+                <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    padding: '6px 16px 10px',
+                }}>
+                    <button
+                        onClick={() => onStatusChange(action.nextState)}
+                        disabled={isLoading}
+                        style={{
+                            ...BTN.base, ...BTN.primary,
+                            opacity: isLoading ? 0.6 : 1,
+                            cursor: isLoading ? 'not-allowed' : 'pointer',
+                        }}
+                    >
+                        {action.label}
+                    </button>
+
+                    <button
+                        onClick={() => onStatusChange('visit_closed')}
+                        disabled={isLoading}
+                        style={{
+                            ...BTN.base, ...BTN.outline,
+                            opacity: isLoading ? 0.6 : 1,
+                            cursor: isLoading ? 'not-allowed' : 'pointer',
+                        }}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
