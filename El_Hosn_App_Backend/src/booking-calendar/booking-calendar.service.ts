@@ -797,7 +797,7 @@ export class BookingCalendarService {
                         mobile:     patient?.mobile      || appointment.mobile || appointment.phone_number || '',
                         nationalId: patient?.id_number   || appointment.vat   || appointment.id_number   || '',
                         idType: appointment.id_type || '',
-                        nationalityId: appointment.nationality || appointment.patient_nationality || appointment.nationality_id || null,
+                        nationalityId: appointment.nationality || null,
                         dob: patient?.date_of_birth
                             ? new Date(patient.date_of_birth).toISOString().split('T')[0]
                             : appointment.date_of_birth
@@ -872,8 +872,6 @@ export class BookingCalendarService {
                 appointment.mobile = patientDetails.mobile || appointment.mobile;
                 appointment.vat = patientDetails.nationalId || appointment.vat;
                 appointment.id_type = patientDetails.idType || appointment.id_type;
-                appointment.nationality_id = patientDetails.nationalityId ? Number(patientDetails.nationalityId) : appointment.nationality_id;
-                appointment.patient_nationality = patientDetails.nationalityId ? Number(patientDetails.nationalityId) : appointment.patient_nationality;
                 appointment.nationality = patientDetails.nationalityId ? Number(patientDetails.nationalityId) : appointment.nationality;
                 appointment.date_of_birth = patientDetails.dob ? new Date(patientDetails.dob) : appointment.date_of_birth;
                 appointment.gender = patientDetails.gender ? (patientDetails.gender.toLowerCase() === 'male' ? 'Male' : 'Female') : appointment.gender;

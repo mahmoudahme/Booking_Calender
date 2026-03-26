@@ -32,8 +32,7 @@ export class OpdRegistrationModel {
   @Column({ nullable: true })
   doctor_find_us!: number | null;
 
-  @Column({ nullable: true })
-  patient_nationality!: number | null;
+
 
   @Column({ nullable: true })
   cityy!: number | null;
@@ -47,8 +46,6 @@ export class OpdRegistrationModel {
   @Column({ nullable: true })
   nok_nationality!: number | null;
 
-  @Column({ nullable: true })
-  nationality_id!: number | null;
 
   @Column({ nullable: true })
   department_id!: number | null;
