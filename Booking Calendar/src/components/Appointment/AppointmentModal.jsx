@@ -133,10 +133,12 @@ const AppointmentModal = ({
             lastName: patient.lastName || '',
             mobile: patient.mobile || '',
             nationalId: patient.nationalId || '',
+            idType: patient.idType || '',
+            nationalityId: patient.nationalityId ? String(patient.nationalityId) : '',
             dob: patient.dob || '',
             age: patient.age || '',
             gender: patient.gender || '',
-            additionalPhone: ''
+            additionalPhone: patient.additionalPhone || '',
         });
         setSearchResults([]); // Hide dropdown after selection
 
