@@ -322,26 +322,26 @@ function App() {
     const hasValidContext = odooContext.isEmbedded && odooContext.user;
 
     // Show access denied if no valid context
-    if (!odooContext.isLoading && !hasValidContext) {
-        return (
-            <div className="app-container" style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100vh',
-                flexDirection: 'column',
-                gap: '16px'
-            }}>
-                <div style={{
-                    fontSize: '48px'
-                }}>🔒</div>
-                <h2 style={{ margin: 0, color: '#333' }}>Access Denied</h2>
-                <p style={{ margin: 0, color: '#666' }}>
-                    Please access this calendar from Odoo
-                </p>
-            </div>
-        );
-    }
+    // if (!odooContext.isLoading && !hasValidContext) {
+    //     return (
+    //         <div className="app-container" style={{
+    //             display: 'flex',
+    //             justifyContent: 'center',
+    //             alignItems: 'center',
+    //             height: '100vh',
+    //             flexDirection: 'column',
+    //             gap: '16px'
+    //         }}>
+    //             <div style={{
+    //                 fontSize: '48px'
+    //             }}>🔒</div>
+    //             <h2 style={{ margin: 0, color: '#333' }}>Access Denied</h2>
+    //             <p style={{ margin: 0, color: '#666' }}>
+    //                 Please access this calendar from Odoo
+    //             </p>
+    //         </div>
+    //     );
+    // }
 
     // Show loading while checking context
     if (odooContext.isLoading) {
