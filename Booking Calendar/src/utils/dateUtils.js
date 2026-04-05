@@ -1,4 +1,4 @@
-import { format, startOfWeek, addDays } from 'date-fns';
+import { format, startOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 
 /**
  * Get relative date from today
@@ -34,6 +34,18 @@ export const getWeekRange = (date) => {
         dates.push(format(addDays(weekStart, i), 'yyyy-MM-dd'));
     }
 
+    return { startDate, endDate, dates };
+};
+
+/**
+ * Get date range for month view
+ */
+export const getMonthRange = (date) => {
+    const monthStart = startOfMonth(date);
+    const monthEnd = endOfMonth(date);
+    const startDate = format(monthStart, 'yyyy-MM-dd') + 'T00:00:00';
+    const endDate = format(monthEnd, 'yyyy-MM-dd') + 'T23:59:59';
+    const dates = eachDayOfInterval({ start: monthStart, end: monthEnd }).map(d => format(d, 'yyyy-MM-dd'));
     return { startDate, endDate, dates };
 };
 

@@ -55,7 +55,7 @@ const CollectionRateChart = ({ data }) => {
                                     return (
                                         <div className="chart-tooltip">
                                             <p className="tooltip-label">{d.name}</p>
-                                            <p className="tooltip-value">{d.value.toLocaleString()} SAR</p>
+                                            <p className="tooltip-value">{d.value?.toLocaleString() ?? '—'} SAR</p>
                                         </div>
                                     );
                                 }
@@ -73,12 +73,12 @@ const CollectionRateChart = ({ data }) => {
                 <div className="collection-item">
                     <span className="collection-dot" style={{ background: '#0da35d' }}></span>
                     <span className="collection-label">Paid</span>
-                    <span className="collection-value">{data.totalPaid.toLocaleString()} SAR</span>
+                    <span className="collection-value">{data.totalPaid?.toLocaleString() ?? '—'} SAR</span>
                 </div>
                 <div className="collection-item">
                     <span className="collection-dot" style={{ background: '#ea580c' }}></span>
                     <span className="collection-label">Pending</span>
-                    <span className="collection-value">{data.totalPending.toLocaleString()} SAR</span>
+                    <span className="collection-value">{data.totalPending?.toLocaleString() ?? '—'} SAR</span>
                 </div>
             </div>
         </motion.div>

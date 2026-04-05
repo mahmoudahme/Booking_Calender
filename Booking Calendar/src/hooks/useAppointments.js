@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import bookingAPI from '../services/api';
-import { getDayRange, getWeekRange } from '../utils/dateUtils';
+import { getDayRange, getWeekRange, getMonthRange } from '../utils/dateUtils';
 import { normalizeTime } from '../utils/timeUtils';
 import { VIEW_MODES, POLLING_INTERVAL } from '../constants';
 
@@ -20,8 +20,11 @@ export const useAppointments = (selectedDate, viewMode, selectedDoctors) => {
 
         try {
             // Get date range based on view mode
+            const isDashboard = viewMode === VIEW_MODES.DASHBOARD;
             const { startDate, endDate, dates } = viewMode === VIEW_MODES.DAY
                 ? getDayRange(selectedDate)
+                : isDashboard
+                ? getMonthRange(selectedDate)
                 : getWeekRange(selectedDate);
 
             // Fetch appointments
@@ -33,6 +36,9 @@ export const useAppointments = (selectedDate, viewMode, selectedDoctors) => {
 
             console.log("Fetched Appointments:", appointmentsData);
             setAppointments(appointmentsData);
+
+            // Skip slot fetching in dashboard mode (not needed for stats)
+            if (isDashboard) return;
 
             // Fetch slots for all dates (bulk fetch)
             const slotsData = {};

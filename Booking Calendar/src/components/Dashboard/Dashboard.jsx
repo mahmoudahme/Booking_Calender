@@ -70,8 +70,10 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
             <div className="dashboard-grid dashboard-grid-4">
                 <StatCard
                     title="Total Revenue"
-                    value={financial ? `${(financial.summary.totalRevenue / 1000).toFixed(0)}K` : '—'}
-                    subtitle="All branches combined"
+                    value={financial ? (financial.summary.totalRevenue >= 1000000
+                        ? `${(financial.summary.totalRevenue / 1000000).toFixed(2)}M`
+                        : `${(financial.summary.totalRevenue / 1000).toFixed(0)}K`) : '—'}
+                    subtitle={`SAR — ${period === DASHBOARD_PERIODS.TODAY ? 'Today' : period === DASHBOARD_PERIODS.WEEK ? 'This Week' : 'This Month'}`}
                     icon={DollarSign}
                     color="green"
                     trend={financial ? 12.5 : undefined}
