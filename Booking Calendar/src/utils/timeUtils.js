@@ -23,7 +23,7 @@ export const calculateDragDuration = (startTime, endTime) => {
  */
 export const calculateTop = (timeStr) => {
     const [h, m] = timeStr.split(':').map(Number);
-    const totalMinutes = (h - 9) * 60 + m;
+    const totalMinutes = (h - 10) * 60 + m;
     return totalMinutes * (PIXELS_PER_HOUR / 60);
 };
 

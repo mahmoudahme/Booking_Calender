@@ -4,9 +4,9 @@ export const API_BASE_URL = 'http://46.225.164.73:3000/api/v1/booking-calendar';
 // Time Configuration
 export const HOURS = (() => {
     const hours = [];
-    for (let h = 9; h <= 21; h++) {
+    for (let h = 10; h <= 22; h++) {
         ['00', '15', '30', '45'].forEach(m => {
-            if (h === 21 && m !== '00') return;
+            if (h === 22 && m !== '00') return;
             const hourStr = h < 10 ? `0${h}` : `${h}`;
             hours.push(`${hourStr}:${m}`);
         });
