@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { ChevronDown, ChevronRight, Filter } from 'lucide-react';
+import { format } from 'date-fns';
 
 const Sidebar = ({
     isOpen,
@@ -11,7 +12,9 @@ const Sidebar = ({
     selectedDoctors,
     setSelectedDoctors,
     selectedStates,
-    setSelectedStates
+    setSelectedStates,
+    doctorSlots = {},
+    viewMode,
 }) => {
     const [isDoctorsExpanded, setIsDoctorsExpanded] = useState(true);
     const [isStatesExpanded, setIsStatesExpanded] = useState(true);
@@ -49,6 +52,18 @@ const Sidebar = ({
             ).values()
         )
     ];
+
+    // Check availability per doctor on selectedDate (week view only)
+    const isWeekView = viewMode === 'week';
+    const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
+    const hasSlotsOnDay = (docId) => {
+        if (!isWeekView || !selectedDateStr) return true;
+        const key = `${docId}_${selectedDateStr}`;
+        const slots = doctorSlots[key];
+        console.log(`🔍 hasSlotsOnDay doc=${docId} date=${selectedDateStr} key=${key} slots=`, slots);
+        if (!Array.isArray(slots) || slots.length === 0) return null;
+        return slots.some(s => s.available);
+    };
 
     const filteredDoctors = doctors.filter(doc => {
         const matchesSearch = doc.name.toLowerCase().includes(doctorSearch.toLowerCase());
@@ -233,20 +248,36 @@ const Sidebar = ({
                             </div>
                         )}
                         <div className="doctor-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {filteredDoctors.map(doc => (
-                                <label
-                                    key={doc.id}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem', padding: '2px 0' }}
-                                >
-                                    <input
-                                        type="radio"
-                                        checked={selectedDoctors.includes(doc.id)}
-                                        onChange={() => handleDoctorSelect(doc.id)}
-                                        style={{ accentColor: 'var(--primary)', width: '16px', height: '16px', cursor: 'pointer' }}
-                                    />
-                                    <span>{doc.name}</span>
-                                </label>
-                            ))}
+                            {filteredDoctors.map(doc => {
+                                const available = hasSlotsOnDay(doc.id);
+                                const noSlots = available === false;
+                                return (
+                                    <label
+                                        key={doc.id}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem', padding: '2px 0' }}
+                                    >
+                                        <input
+                                            type="radio"
+                                            checked={selectedDoctors.includes(doc.id)}
+                                            onChange={() => handleDoctorSelect(doc.id)}
+                                            style={{ accentColor: 'var(--primary)', width: '16px', height: '16px', cursor: 'pointer' }}
+                                        />
+                                        <span style={{ opacity: noSlots ? 0.5 : 1 }}>{doc.name}</span>
+                                        {noSlots && (
+                                            <span style={{
+                                                fontSize: '0.7rem',
+                                                padding: '1px 6px',
+                                                borderRadius: '10px',
+                                                background: 'var(--border-color)',
+                                                color: 'var(--text-muted)',
+                                                whiteSpace: 'nowrap',
+                                            }}>
+                                                No slots
+                                            </span>
+                                        )}
+                                    </label>
+                                );
+                            })}
                             {filteredDoctors.length === 0 && (
                                 <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No doctors found</span>
                             )}

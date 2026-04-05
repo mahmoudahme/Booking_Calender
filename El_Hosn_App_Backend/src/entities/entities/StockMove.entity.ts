@@ -153,9 +153,9 @@ export class StockMove {
   is_dropship!: boolean | null;
 
   @Column({ nullable: true })
-  sale_line_id!: number | null;
+  purchase_line_id!: number | null;
 
   @Column({ nullable: true })
-  purchase_line_id!: number | null;
+  sale_line_id!: number | null;
 
 }

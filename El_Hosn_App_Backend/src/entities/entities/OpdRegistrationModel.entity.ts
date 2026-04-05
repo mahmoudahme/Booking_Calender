@@ -12,13 +12,25 @@ export class OpdRegistrationModel {
   age!: number | null;
 
   @Column({ nullable: true })
+  nationality!: number | null;
+
+  @Column({ nullable: true })
   doctor_id!: number | null;
+
+  @Column({ nullable: true })
+  nurse_id!: number | null;
 
   @Column({ nullable: true })
   subtime!: number | null;
 
   @Column({ nullable: true })
   computed_sequence!: number | null;
+
+  @Column({ nullable: true })
+  consultation_type!: number | null;
+
+  @Column({ nullable: true })
+  consultation_invoice!: number | null;
 
   @Column({ nullable: true })
   limit!: number | null;
@@ -39,6 +51,9 @@ export class OpdRegistrationModel {
   company!: number | null;
 
   @Column({ nullable: true })
+  patient_source!: number | null;
+
+  @Column({ nullable: true })
   nok_cityy!: number | null;
 
   @Column({ nullable: true })
@@ -51,7 +66,28 @@ export class OpdRegistrationModel {
   admitting_doctor_id!: number | null;
 
   @Column({ nullable: true })
+  prescription_template_id!: number | null;
+
+  @Column({ nullable: true })
   invoice!: number | null;
+
+  @Column({ nullable: true })
+  payment_line_count!: number | null;
+
+  @Column({ nullable: true })
+  single_journal_id!: number | null;
+
+  @Column({ nullable: true })
+  single_reference_id!: number | null;
+
+  @Column({ nullable: true })
+  deposit_invoice_id!: number | null;
+
+  @Column({ nullable: true })
+  deposit_group_id!: number | null;
+
+  @Column({ nullable: true })
+  consent_template_id!: number | null;
 
   @Column({ nullable: true })
   create_uid!: number | null;
@@ -70,6 +106,12 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   mobile!: string | null;
+
+  @Column({ nullable: true })
+  mobile_country_code!: string | null;
+
+  @Column({ nullable: true })
+  mobile_number!: string | null;
 
   @Column({ nullable: true })
   email!: string | null;
@@ -118,6 +160,24 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   payment_way!: string | null;
+
+  @Column({ nullable: true })
+  appointment_type!: string | null;
+
+  @Column({ nullable: true })
+  consultation_channel!: string | null;
+
+  @Column({ nullable: true })
+  meeting_url!: string | null;
+
+  @Column({ nullable: true })
+  name!: string | null;
+
+  @Column({ nullable: true })
+  phone_country_code!: string | null;
+
+  @Column({ nullable: true })
+  phone_number!: string | null;
 
   @Column({ nullable: true })
   nok_first_name!: string | null;
@@ -183,7 +243,31 @@ export class OpdRegistrationModel {
   visit_classification!: string | null;
 
   @Column({ nullable: true })
+  visit_type!: string | null;
+
+  @Column({ nullable: true })
   referred_by!: string | null;
+
+  @Column({ nullable: true })
+  single_payment_mode!: string | null;
+
+  @Column({ nullable: true })
+  card_type!: string | null;
+
+  @Column({ nullable: true })
+  stamped_pdf_filename!: string | null;
+
+  @Column({ nullable: true })
+  document_image_hash!: string | null;
+
+  @Column({ nullable: true })
+  stamped_image_hash!: string | null;
+
+  @Column({ nullable: true })
+  stamped_pdf_hash!: string | null;
+
+  @Column({ nullable: true })
+  consent_subject!: string | null;
 
   @Column({ nullable: true })
   date_of_birth!: Date | null;
@@ -192,7 +276,13 @@ export class OpdRegistrationModel {
   search_date!: Date | null;
 
   @Column({ nullable: true })
+  consent_date!: Date | null;
+
+  @Column({ nullable: true })
   cancellation_reason!: string | null;
+
+  @Column({ nullable: true })
+  schedule_reason!: string | null;
 
   @Column({ nullable: true })
   notes!: string | null;
@@ -213,13 +303,25 @@ export class OpdRegistrationModel {
   complaint!: string | null;
 
   @Column({ nullable: true })
+  website_order_items_json!: string | null;
+
+  @Column({ nullable: true })
+  consent_rendered_body!: string | null;
+
+  @Column({ nullable: true })
   is_foreign!: boolean | null;
+
+  @Column({ nullable: true })
+  consultation!: boolean | null;
 
   @Column({ nullable: true })
   vip!: boolean | null;
 
   @Column({ nullable: true })
   is_readonly!: boolean | null;
+
+  @Column({ nullable: true })
+  related_to_offer!: boolean | null;
 
   @Column({ nullable: true })
   communication_sms!: boolean | null;
@@ -232,6 +334,12 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   secondary_sponsor!: boolean | null;
+
+  @Column({ nullable: true })
+  is_deposit_registration!: boolean | null;
+
+  @Column({ nullable: true })
+  is_stamped!: boolean | null;
 
   @Column({ nullable: true })
   appointment_date!: Date | null;
@@ -273,123 +381,15 @@ export class OpdRegistrationModel {
   payment_amount!: number | null;
 
   @Column({ nullable: true })
-  nurse_id!: number | null;
-
-  @Column({ nullable: true })
-  nationality!: number | null;
-
-  @Column({ nullable: true })
-  deposit_invoice_id!: number | null;
-
-  @Column({ nullable: true })
-  deposit_group_id!: number | null;
-
-  @Column({ nullable: true })
-  is_deposit_registration!: boolean | null;
-
-  @Column({ nullable: true })
-  prescription_template_id!: number | null;
-
-  @Column({ nullable: true })
-  name!: string | null;
-
-  @Column({ nullable: true })
-  phone_country_code!: string | null;
-
-  @Column({ nullable: true })
-  phone_number!: string | null;
-
-  @Column({ nullable: true })
-  patient_source!: number | null;
-
-  @Column({ nullable: true })
-  schedule_reason!: string | null;
-
-  @Column({ nullable: true })
-  stamped_pdf_filename!: string | null;
-
-  @Column({ nullable: true })
-  is_stamped!: boolean | null;
-
-  @Column({ nullable: true })
-  patient_seq!: string | null;
-
-  @Column({ nullable: true })
-  consultation_type!: number | null;
-
-  @Column({ nullable: true })
-  consultation_invoice!: number | null;
-
-  @Column({ nullable: true })
-  card_type!: string | null;
-
-  @Column({ nullable: true })
-  document_image_hash!: string | null;
-
-  @Column({ nullable: true })
-  stamped_image_hash!: string | null;
-
-  @Column({ nullable: true })
-  stamped_pdf_hash!: string | null;
-
-  @Column({ nullable: true })
-  visit_type!: string | null;
-
-  @Column({ nullable: true })
   coordinator_discount!: number | null;
 
   @Column({ nullable: true })
   final_amount!: number | null;
 
   @Column({ nullable: true })
-  consent_template_id!: number | null;
-
-  @Column({ nullable: true })
-  consent_subject!: string | null;
-
-  @Column({ nullable: true })
-  consent_date!: Date | null;
-
-  @Column({ nullable: true })
-  consent_rendered_body!: string | null;
-
-  @Column({ nullable: true })
-  consultation!: boolean | null;
-
-  @Column({ nullable: true })
-  payment_line_count!: number | null;
-
-  @Column({ nullable: true })
-  single_journal_id!: number | null;
-
-  @Column({ nullable: true })
-  single_reference_id!: number | null;
-
-  @Column({ nullable: true })
-  single_payment_mode!: string | null;
-
-  @Column({ nullable: true })
-  appointment_type!: string | null;
-
-  @Column({ nullable: true })
-  consultation_channel!: string | null;
-
-  @Column({ nullable: true })
-  meeting_url!: string | null;
-
-  @Column({ nullable: true })
-  related_to_offer!: boolean | null;
-
-  @Column({ nullable: true })
-  mobile_country_code!: string | null;
-
-  @Column({ nullable: true })
-  mobile_number!: string | null;
-
-  @Column({ nullable: true })
-  website_order_items_json!: string | null;
-
-  @Column({ nullable: true })
   crm_lead_id!: number | null;
+
+  @Column()
+  branch_id!: number;
 
 }

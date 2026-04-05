@@ -15,6 +15,12 @@ export class DoctorSpecialityModel {
   name!: string | null;
 
   @Column({ nullable: true })
+  name_ar!: string | null;
+
+  @Column({ nullable: true })
+  is_surgery!: boolean | null;
+
+  @Column({ nullable: true })
   create_date!: Date | null;
 
   @Column({ nullable: true })

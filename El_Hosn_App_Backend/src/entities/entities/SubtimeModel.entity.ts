@@ -1,5 +1,4 @@
-import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { DoctorModel } from './DoctorModel.entity';
+import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('subtime_model', { schema: 'public' })
 export class SubtimeModel {
@@ -11,10 +10,6 @@ export class SubtimeModel {
 
   @Column({ nullable: true })
   doctor_id!: number | null;
-
-  @ManyToOne(() => DoctorModel)
-  @JoinColumn({ name: 'doctor_id' })
-  doctor!: DoctorModel;
 
   @Column({ nullable: true })
   create_uid!: number | null;
@@ -33,5 +28,8 @@ export class SubtimeModel {
 
   @Column({ nullable: true })
   write_date!: Date | null;
+
+  @Column({ nullable: true })
+  branch_id!: number | null;
 
 }

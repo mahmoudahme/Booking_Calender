@@ -183,15 +183,15 @@ export class AccountMoveLine {
   exclude_bank_lines!: boolean | null;
 
   @Column({ nullable: true })
-  followup_line_id!: number | null;
-
-  @Column({ nullable: true })
   is_downpayment!: boolean | null;
 
   @Column({ nullable: true })
-  cogs_origin_id!: number | null;
+  followup_line_id!: number | null;
 
   @Column({ nullable: true })
   purchase_line_id!: number | null;
+
+  @Column({ nullable: true })
+  cogs_origin_id!: number | null;
 
 }

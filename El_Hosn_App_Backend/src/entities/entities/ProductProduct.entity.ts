@@ -1,5 +1,4 @@
-import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { ProductTemplate } from './ProductTemplate.entity';
+import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('product_product', { schema: 'public' })
 export class ProductProduct {
@@ -8,10 +7,6 @@ export class ProductProduct {
 
   @Column()
   product_tmpl_id!: number;
-
-  @ManyToOne(() => ProductTemplate)
-  @JoinColumn({ name: 'product_tmpl_id' })
-  productTmpl!: ProductTemplate;
 
   @Column({ nullable: true })
   create_uid!: number | null;

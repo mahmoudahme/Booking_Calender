@@ -16,6 +16,8 @@ import { UomUom } from '../entities/entities/UomUom.entity';
 import { StockLocation } from '../entities/entities/StockLocation.entity';
 import { StockQuant } from '../entities/entities/StockQuant.entity';
 import { ResCountry } from '../entities/entities/ResCountry.entity';
+import { ResPartner } from '../entities/entities/ResPartner.entity';
+import { ProductCategory } from '../entities/entities/ProductCategory.entity';
 
 @Injectable()
 export class DashboardService {
@@ -34,8 +36,6 @@ export class DashboardService {
         private readonly productTemplateRepo: Repository<ProductTemplate>,
         @InjectRepository(OpdRegistrationModel)
         private readonly appointmentRepo: Repository<OpdRegistrationModel>,
-        @InjectRepository(DoctorModel)
-        private readonly doctorRepo: Repository<DoctorModel>,
         @InjectRepository(PatientModel)
         private readonly patientRepo: Repository<PatientModel>,
         @InjectRepository(SubtimeModel)
@@ -45,11 +45,13 @@ export class DashboardService {
         @InjectRepository(UomUom)
         private readonly uomRepo: Repository<UomUom>,
         @InjectRepository(StockLocation)
-        private readonly locationRepo: Repository<StockLocation>,
+        private readonly locationRepo: Repository<StockLocation>, 
         @InjectRepository(StockQuant)
         private readonly stockQuantRepo: Repository<StockQuant>,
         @InjectRepository(ResCountry)
         private readonly countryRepo: Repository<ResCountry>,
+        @InjectRepository(ResPartner)
+        private readonly partnerRepo: Repository<ResPartner>,
     ) { }
 
     private getDateRange(period: string): { start: Date, end: Date } {
@@ -186,7 +188,7 @@ export class DashboardService {
             .addSelect('SUM(aml.price_subtotal)', 'revenue')
             .innerJoin(ProductProduct, 'p', 'p.id = aml.product_id')
             .innerJoin(ProductTemplate, 't', 't.id = p.product_tmpl_id')
-            .leftJoin('product_category', 'c', 'c.id = t.categ_id')
+            .leftJoin(ProductCategory, 'c', 'c.id = t.categ_id')
             .where('aml.invoice_date BETWEEN :start AND :end', { start, end })
             .andWhere("aml.parent_state = 'posted' AND aml.display_type = 'product'")
             .groupBy('t.id').addGroupBy('t.name').addGroupBy('c.name')
@@ -413,20 +415,23 @@ export class DashboardService {
             .addSelect('COUNT(*)', 'total')
             .addSelect("SUM(CASE WHEN app.appointment_state IN ('paid', 'closed') THEN 1 ELSE 0 END)", 'completed')
             .addSelect('AVG(CASE WHEN app.end_date IS NOT NULL AND app.appointment_state IN (\'paid\', \'closed\') THEN EXTRACT(EPOCH FROM (app.end_date - app.appointment_date))/60 END)', 'avgProcedureMinutes')
+            .leftJoin(DoctorModel, 'dm', 'dm.id = app.doctor_id')
+            .leftJoin(ResPartner, 'rp', 'rp.id = dm.partner_id')
+            .addSelect('rp.name', 'doctorName')
             .where('app.appointment_date BETWEEN :start AND :end', { start: today, end: tonight })
             .groupBy('app.doctor_id')
+            .addGroupBy('rp.name')
             .getRawMany();
 
-        const doctorKPIs = await Promise.all(doctorStats.map(async s => {
-            const doctor = await this.doctorRepo.findOne({ where: { id: s.doctorId }, relations: ['partner'] });
+        const doctorKPIs = doctorStats.map(s => {
             const avgTime = s.avgProcedureMinutes ? Math.round(Number(s.avgProcedureMinutes)) : null;
             return {
-                doctorName: doctor?.partner?.name || `Doctor ${s.doctorId}`,
+                doctorName: s.doctorName || `Doctor ${s.doctorId}`,
                 completionRate: Number(s.total) > 0 ? Math.round((Number(s.completed) / Number(s.total)) * 100) : 0,
                 avgProcedureTime: avgTime,
                 patientSatisfaction: null // Not tracked in database
             };
-        }));
+        });
 
         // Hourly Distribution
         const hourlyDistribution = await this.appointmentRepo.createQueryBuilder('app')

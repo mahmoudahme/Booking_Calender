@@ -12,6 +12,7 @@ const AppointmentModal = ({
     setSelectedDuration,
     viewMode,
     doctors,
+    doctorSlots = {},
     setSelectedSlot,
     isSlotAvailable,
     onSubmit,
@@ -287,9 +288,20 @@ const AppointmentModal = ({
                                                         color: 'var(--text)'
                                                     }}
                                                 >
-                                                    {doctors.map(d => (
-                                                        <option key={d.id} value={d.id}>{d.name} ({d.specialty})</option>
-                                                    ))}
+                                                    {doctors.map(d => {
+                                                        const key = `${d.id}_${selectedSlot?.date}`;
+                                                        const slots = doctorSlots[key];
+                                                        // undefined = not fetched yet → allow
+                                                        // [] = backend confirmed no slots → disable
+                                                        const notFetched = slots === undefined;
+                                                        const hasSlots = Array.isArray(slots) && slots.some(s => s.available);
+                                                        const disabled = !notFetched && !hasSlots;
+                                                        return (
+                                                            <option key={d.id} value={d.id} disabled={disabled}>
+                                                                {d.name} ({d.specialty}){disabled ? ' — No slots' : ''}
+                                                            </option>
+                                                        );
+                                                    })}
                                                 </select>
                                             </div>
                                         ) : (
@@ -623,7 +635,7 @@ const AppointmentModal = ({
                                     {editMode && editingAppointment?.id && (
                                         <button
                                             type="button"
-                                            onClick={() => window.open(`http://72.62.16.223:8019/odoo/action-498/${editingAppointment.id}`, '_blank')}
+                                            onClick={() => window.open(`http://46.225.164.73:8069/odoo/action-693/${editingAppointment.id}`, '_blank')}
                                             style={{
                                                 background: '#f59e0b',
                                                 color: 'white',

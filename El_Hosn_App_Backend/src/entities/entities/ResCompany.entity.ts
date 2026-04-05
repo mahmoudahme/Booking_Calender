@@ -345,12 +345,6 @@ export class ResCompany {
   account_last_return_cron_refresh!: Date | null;
 
   @Column({ nullable: true })
-  gain_account_id!: number | null;
-
-  @Column({ nullable: true })
-  loss_account_id!: number | null;
-
-  @Column({ nullable: true })
   quotation_validity_days!: number | null;
 
   @Column({ nullable: true })
@@ -373,6 +367,24 @@ export class ResCompany {
 
   @Column({ nullable: true })
   sale_order_template_id!: number | null;
+
+  @Column({ nullable: true })
+  extract_in_invoice_digitalization_mode!: string | null;
+
+  @Column({ nullable: true })
+  extract_out_invoice_digitalization_mode!: string | null;
+
+  @Column({ nullable: true })
+  extract_single_line_per_tax!: boolean | null;
+
+  @Column({ nullable: true })
+  po_lock!: string | null;
+
+  @Column({ nullable: true })
+  po_double_validation!: string | null;
+
+  @Column({ nullable: true })
+  po_double_validation_amount!: number | null;
 
   @Column({ nullable: true })
   nomenclature_id!: number | null;
@@ -428,20 +440,20 @@ export class ResCompany {
   @Column({ nullable: true })
   has_received_warning_stock_sms!: boolean | null;
 
+  @Column({ nullable: true })
+  days_to_purchase!: number | null;
+
   @Column()
   security_lead!: number;
 
   @Column({ nullable: true })
-  po_lock!: string | null;
+  gain_account_id!: number | null;
 
   @Column({ nullable: true })
-  po_double_validation!: string | null;
+  loss_account_id!: number | null;
 
   @Column({ nullable: true })
-  po_double_validation_amount!: number | null;
-
-  @Column({ nullable: true })
-  days_to_purchase!: number | null;
+  extract_bank_statement_digitalization_mode!: string | null;
 
   @Column({ nullable: true })
   hr_presence_control_email_amount!: number | null;
@@ -477,15 +489,12 @@ export class ResCompany {
   l10n_gcc_dual_language_invoice!: boolean | null;
 
   @Column({ nullable: true })
-  vat_check_vies!: boolean | null;
+  name_ar!: string | null;
 
   @Column({ nullable: true })
-  l10n_sa_private_key_id!: number | null;
-
-  @Column()
-  l10n_sa_api_mode!: string;
+  latitude!: number | null;
 
   @Column({ nullable: true })
-  l10n_sa_edi_is_production!: boolean | null;
+  longitude!: number | null;
 
 }

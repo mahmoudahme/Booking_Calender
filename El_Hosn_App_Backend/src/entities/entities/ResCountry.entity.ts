@@ -20,7 +20,7 @@ export class ResCountry {
   @Column({ nullable: true })
   write_uid!: number | null;
 
-  @Column({ length: 2 })
+  @Column()
   code!: string;
 
   @Column({ nullable: true })

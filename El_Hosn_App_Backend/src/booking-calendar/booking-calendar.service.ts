@@ -10,6 +10,7 @@ import { SubtimeModel } from '../entities/entities/SubtimeModel.entity';
 import { CampaginsSources } from '../entities/entities/CampaginsSources.entity';
 import { ResCompany } from '../entities/entities/ResCompany.entity';
 import { ResCountry } from '../entities/entities/ResCountry.entity';
+import { ClinicBranch } from '../entities/entities/ClinicBranch.entity';
 import { CreateAppointmentDto, UpdateAppointmentDto } from './dto';
 
 @Injectable()
@@ -33,6 +34,8 @@ export class BookingCalendarService {
         private readonly companyRepository: Repository<ResCompany>,
         @InjectRepository(ResCountry)
         private readonly countryRepository: Repository<ResCountry>,
+        @InjectRepository(ClinicBranch)
+        private readonly clinicBranchRepository: Repository<ClinicBranch>,
     ) { }
 
     async getCountries() {
@@ -58,30 +61,43 @@ export class BookingCalendarService {
     }
 
     async getDoctors() {
-        const [doctors, branches] = await Promise.all([
-            this.doctorRepository.find({ relations: ['partner', 'doctorSpeciality'] }),
-            this.companyRepository.find({ select: ['id', 'name'] }),
+        const [doctors, clinicBranches] = await Promise.all([
+            this.doctorRepository.find(),
+            this.clinicBranchRepository.find(),
         ]);
 
-        const branchMap = new Map(branches.map(b => [b.id, b.name]));
+        // Map: clinic_branch.id → clinic_branch
+        const branchMap = new Map<number, ClinicBranch>();
+        for (const b of clinicBranches) branchMap.set(b.id, b);
 
-        // Collect partner IDs to fetch company_id in bulk
+        // Fetch partners and specialities in bulk
         const partnerIds = doctors.map(d => d.partner_id).filter(Boolean);
-        const partners = partnerIds.length > 0
-            ? await this.partnerRepository.find({ where: { id: In(partnerIds) }, select: ['id', 'company_id'] })
-            : [];
-        const partnerCompanyMap = new Map(partners.map(p => [p.id, p.company_id]));
+        const specialityIds = [...new Set(doctors.map(d => d.doctor_speciality).filter(Boolean))];
+
+        const [partners, specialities] = await Promise.all([
+            partnerIds.length > 0
+                ? this.partnerRepository.find({ where: { id: In(partnerIds) } })
+                : [],
+            specialityIds.length > 0
+                ? this.specialityRepository.find({ where: { id: In(specialityIds) } })
+                : [],
+        ]);
+
+        const partnerMap = new Map<number, ResPartner>();
+        for (const p of partners) partnerMap.set(p.id, p);
+        const specialityMap = new Map<number, string | null>();
+        for (const s of specialities) specialityMap.set(s.id, s.name ?? null);
 
         return doctors.map((doc) => {
-            const companyId = partnerCompanyMap.get(doc.partner_id) || null;
-            const companyName = companyId ? (branchMap.get(companyId) || null) : null;
+            const partner = partnerMap.get(doc.partner_id);
+            const branch = doc.branch_id ? branchMap.get(doc.branch_id) : null;
             return {
                 id: doc.id,
-                name: doc.partner?.name || 'Unknown Doctor',
-                specialty: doc.doctorSpeciality?.name || 'General Dentist',
+                name: partner?.name || 'Unknown Doctor',
+                specialty: specialityMap.get(doc.doctor_speciality) || 'General Dentist',
                 image: `https://i.pravatar.cc/150?u=${doc.id}`,
-                companyId,
-                companyName,
+                companyId: branch?.id || null,
+                companyName: branch?.name || null,
             };
         });
     }
@@ -275,6 +291,10 @@ export class BookingCalendarService {
             }
         }
 
+        // Get doctor's branch_id for the appointment
+        const doctor = await this.doctorRepository.findOne({ where: { id: doctorId } });
+        const branchId = doctor?.branch_id || 1;
+
         const createdAppointments = [];
 
         for (let i = 0; i < slotCount; i++) {
@@ -300,7 +320,6 @@ export class BookingCalendarService {
 
             // Odoo stores in UTC. If we are in Egypt (UTC+2), we subtract 2 hours from local time to store in UTC.
             const toUTC = (d: Date) => new Date(d.getTime() - 2 * 60 * 60000);
-            console.log(patientDetails?.idType)
             const appointment = this.appointmentRepository.create({
                 doctor_id: doctorId,
                 patient_id: patient?.id || null,
@@ -329,7 +348,7 @@ export class BookingCalendarService {
                 id_type: patientDetails?.idType || null,
                 nationality: patientDetails?.nationalityId ? Number(patientDetails.nationalityId) : null,
                 date_of_birth: patientDetails?.dob ? new Date(patientDetails.dob) : (patient?.date_of_birth || null),
-                patient_seq: patient?.patient_seq || null,
+                branch_id: branchId,
                 create_uid: 1,
                 write_uid: 1,
                 create_date: new Date(),
@@ -522,7 +541,7 @@ export class BookingCalendarService {
                 deletedCount: deleteResult.affected,
                 description: 'All records from the subtime_model table have been removed.'
             };
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error in clearSlots:', error);
             return {
                 message: 'Failed to clear slots',
@@ -542,7 +561,7 @@ export class BookingCalendarService {
                 deletedCount: deleteResult.affected,
                 description: 'All records from the appointments table have been removed.'
             };
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error in clearData:', error);
             return {
                 message: 'Failed to clear appointments',
@@ -552,21 +571,30 @@ export class BookingCalendarService {
         }
     }
     async analyzeData() {
-        const doctors = await this.doctorRepository.find({ relations: ['partner'] });
+        const doctors = await this.doctorRepository.find();
         const appointments = await this.appointmentRepository.find();
         const slots = await this.subtimeRepository.find();
         const schedules = await this.doctorRepository.query('SELECT * FROM doctor_schedule');
+
+        // Fetch partners for all doctors in bulk
+        const docPartnerIds = doctors.map(d => d.partner_id).filter(Boolean);
+        const docPartners = docPartnerIds.length > 0
+            ? await this.partnerRepository.find({ where: { id: In(docPartnerIds) } })
+            : [];
+        const docPartnerMap = new Map<number, ResPartner>();
+        for (const p of docPartners) docPartnerMap.set(p.id, p);
 
         const issues = [];
         const problematicApps = [];
 
         // Check Doctors
         for (const doc of doctors) {
-            if (!doc.partner) issues.push(`Doctor ID ${doc.id} missing Partner relation.`);
+            const partner = docPartnerMap.get(doc.partner_id);
+            if (!partner) issues.push(`Doctor ID ${doc.id} missing Partner relation.`);
             const hasSchedule = schedules.some((s: any) => s.doctor_id === doc.id);
-            if (!hasSchedule) issues.push(`Doctor ${doc.partner?.name || doc.id} has no entry in doctor_schedule.`);
+            if (!hasSchedule) issues.push(`Doctor ${partner?.name || doc.id} has no entry in doctor_schedule.`);
             const hasSlots = slots.some(s => s.doctor_id === doc.id);
-            if (!hasSlots) issues.push(`Doctor ${doc.partner?.name || doc.id} has no slots in subtime_model.`);
+            if (!hasSlots) issues.push(`Doctor ${partner?.name || doc.id} has no slots in subtime_model.`);
         }
 
         // Check Appointments
@@ -597,7 +625,7 @@ export class BookingCalendarService {
             },
             issues: issues.length > 0 ? issues : "No issues found. Data looks healthy.",
             problematicDetails: problematicApps,
-            doctorsList: doctors.map(d => ({ id: d.id, name: d.partner?.name || 'Unknown' })),
+            doctorsList: doctors.map(d => ({ id: d.id, name: docPartnerMap.get(d.partner_id)?.name || 'Unknown' })),
         };
     }
 

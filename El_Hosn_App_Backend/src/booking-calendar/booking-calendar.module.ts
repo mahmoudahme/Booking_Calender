@@ -11,6 +11,7 @@ import { SubtimeModel } from '../entities/entities/SubtimeModel.entity';
 import { ResCountry } from '../entities/entities/ResCountry.entity';
 import { CampaginsSources } from '../entities/entities/CampaginsSources.entity';
 import { ResCompany } from '../entities/entities/ResCompany.entity';
+import { ClinicBranch } from '../entities/entities/ClinicBranch.entity';
 
 @Module({
     imports: [
@@ -24,6 +25,7 @@ import { ResCompany } from '../entities/entities/ResCompany.entity';
             ResCountry,
             CampaginsSources,
             ResCompany,
+            ClinicBranch,
         ]),
     ],
     controllers: [BookingCalendarController],

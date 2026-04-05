@@ -99,6 +99,9 @@ export class AccountPayment {
   source_payment_id!: number | null;
 
   @Column({ nullable: true })
+  reference_number_id!: number | null;
+
+  @Column({ nullable: true })
   should_withhold_tax!: boolean | null;
 
 }

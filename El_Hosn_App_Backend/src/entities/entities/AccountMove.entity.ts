@@ -216,6 +216,54 @@ export class AccountMove {
   closing_return_id!: number | null;
 
   @Column({ nullable: true })
+  campaign_id!: number | null;
+
+  @Column({ nullable: true })
+  source_id!: number | null;
+
+  @Column({ nullable: true })
+  medium_id!: number | null;
+
+  @Column({ nullable: true })
+  team_id!: number | null;
+
+  @Column({ nullable: true })
+  extract_attachment_id!: number | null;
+
+  @Column({ nullable: true })
+  extract_detected_layout!: number | null;
+
+  @Column({ nullable: true })
+  extract_state!: string | null;
+
+  @Column({ nullable: true })
+  extract_status!: string | null;
+
+  @Column({ nullable: true })
+  extract_document_uuid!: string | null;
+
+  @Column({ nullable: true })
+  extract_partner_name!: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  extracted_words!: any | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  extracted_numbers!: any | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  extracted_dates!: any | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  extract_prefill_data!: any | null;
+
+  @Column({ nullable: true })
+  is_in_extractable_state!: boolean | null;
+
+  @Column({ nullable: true })
+  extract_state_processed!: boolean | null;
+
+  @Column({ nullable: true })
   asset_id!: number | null;
 
   @Column({ nullable: true })
@@ -240,16 +288,7 @@ export class AccountMove {
   is_loan_payment_move!: boolean | null;
 
   @Column({ nullable: true })
-  campaign_id!: number | null;
-
-  @Column({ nullable: true })
-  source_id!: number | null;
-
-  @Column({ nullable: true })
-  medium_id!: number | null;
-
-  @Column({ nullable: true })
-  team_id!: number | null;
+  doctor_id!: number | null;
 
   @Column({ nullable: true })
   debit_origin_id!: number | null;
@@ -259,20 +298,5 @@ export class AccountMove {
 
   @Column({ nullable: true })
   l10n_sa_confirmation_datetime!: Date | null;
-
-  @Column({ nullable: true })
-  edi_state!: string | null;
-
-  @Column({ nullable: true })
-  l10n_sa_chain_index!: number | null;
-
-  @Column({ nullable: true })
-  l10n_sa_edi_chain_head_id!: number | null;
-
-  @Column({ nullable: true })
-  l10n_sa_uuid!: string | null;
-
-  @Column({ nullable: true })
-  l10n_sa_invoice_signature!: string | null;
 
 }

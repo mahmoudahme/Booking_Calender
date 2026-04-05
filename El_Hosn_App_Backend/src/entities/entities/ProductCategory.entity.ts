@@ -62,4 +62,7 @@ export class ProductCategory {
   @Column({ nullable: true })
   clinic_category!: boolean | null;
 
+  @Column({ nullable: true })
+  consultation!: boolean | null;
+
 }

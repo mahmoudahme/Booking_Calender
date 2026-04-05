@@ -45,9 +45,9 @@ export const useAppointments = (selectedDate, viewMode, selectedDoctors) => {
 
             for (const dateStr of dates) {
                 const schedulesMap = await bookingAPI.getSchedule(dateStr);
+                console.log(`📅 getSchedule(${dateStr}) →`, schedulesMap);
 
                 if (schedulesMap) {
-                    // Iterate over returned doctor schedules
                     Object.keys(schedulesMap).forEach(docId => {
                         const rawSlots = schedulesMap[docId];
 
@@ -62,6 +62,7 @@ export const useAppointments = (selectedDate, viewMode, selectedDoctors) => {
                 }
             }
 
+            console.log('🗂️ doctorSlots keys:', Object.keys(slotsData).slice(0, 10));
             setDoctorSlots(slotsData);
         } catch (error) {
             console.error('Error fetching appointments and slots:', error);

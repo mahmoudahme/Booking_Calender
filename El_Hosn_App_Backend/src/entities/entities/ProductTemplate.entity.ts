@@ -1,5 +1,4 @@
-import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { ProductCategory } from './ProductCategory.entity';
+import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('product_template', { schema: 'public' })
 export class ProductTemplate {
@@ -11,10 +10,6 @@ export class ProductTemplate {
 
   @Column({ nullable: true })
   categ_id!: number | null;
-
-  @ManyToOne(() => ProductCategory)
-  @JoinColumn({ name: 'categ_id' })
-  categ!: ProductCategory;
 
   @Column()
   uom_id!: number;
@@ -95,19 +90,67 @@ export class ProductTemplate {
   property_account_expense_id!: any | null;
 
   @Column({ nullable: true })
-  service_group!: number | null;
+  service_type!: string | null;
+
+  @Column({ nullable: true })
+  expense_policy!: string | null;
+
+  @Column({ nullable: true })
+  invoice_policy!: string | null;
+
+  @Column({ nullable: true })
+  sale_line_warn_msg!: string | null;
+
+  @Column({ nullable: true })
+  purchase_method!: string | null;
+
+  @Column({ nullable: true })
+  purchase_line_warn_msg!: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  service_to_purchase!: any | null;
+
+  @Column({ nullable: true })
+  sale_delay!: number | null;
+
+  @Column({ nullable: true })
+  lot_sequence_id!: number | null;
+
+  @Column()
+  tracking!: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  responsible_id!: any | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  property_stock_production!: any | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  property_stock_inventory!: any | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  description_picking!: any | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  description_pickingout!: any | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  description_pickingin!: any | null;
+
+  @Column({ nullable: true })
+  is_storable!: boolean | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  property_price_difference_account_id!: any | null;
+
+  @Column({ nullable: true })
+  lot_valuated!: boolean | null;
 
   @Column({ nullable: true })
   service_duration!: number | null;
 
   @Column({ nullable: true })
-  service_sub_group!: number | null;
-
-  @Column({ nullable: true })
   doctor_specialty!: number | null;
-
-  @Column({ nullable: true })
-  billing_group!: number | null;
 
   @Column({ nullable: true })
   machine_model!: string | null;
@@ -183,62 +226,5 @@ export class ProductTemplate {
 
   @Column({ nullable: true })
   service_tax_percentage!: number | null;
-
-  @Column({ nullable: true })
-  service_type!: string | null;
-
-  @Column({ nullable: true })
-  expense_policy!: string | null;
-
-  @Column({ nullable: true })
-  invoice_policy!: string | null;
-
-  @Column({ nullable: true })
-  sale_line_warn_msg!: string | null;
-
-  @Column({ nullable: true })
-  sale_delay!: number | null;
-
-  @Column({ nullable: true })
-  lot_sequence_id!: number | null;
-
-  @Column()
-  tracking!: string;
-
-  @Column({ type: 'jsonb', nullable: true })
-  responsible_id!: any | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  property_stock_production!: any | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  property_stock_inventory!: any | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  description_picking!: any | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  description_pickingout!: any | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  description_pickingin!: any | null;
-
-  @Column({ nullable: true })
-  is_storable!: boolean | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  property_price_difference_account_id!: any | null;
-
-  @Column({ nullable: true })
-  lot_valuated!: boolean | null;
-
-  @Column({ nullable: true })
-  purchase_method!: string | null;
-
-  @Column({ nullable: true })
-  purchase_line_warn_msg!: string | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  service_to_purchase!: any | null;
 
 }

@@ -53,6 +53,7 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
     const services = dashboardData?.services;
     const patients = dashboardData?.patients;
     const performance = dashboardData?.performance;
+    const appointmentsDummy = dashboardData?.appointments;
 
     return (
         <motion.div
@@ -276,20 +277,20 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                 {activeTab === 'appointments' && (
                     <motion.div key="appointments" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit">
                         <div className="dashboard-grid dashboard-grid-2">
-                            <StatusDistribution data={stats.appointmentStats.byStatus} />
-                            <DoctorStats data={stats.doctorStats} />
+                            <StatusDistribution data={appointmentsDummy?.appointmentStats?.byStatus} />
+                            <DoctorStats data={appointmentsDummy?.doctorStats} />
                         </div>
 
                         <div className="dashboard-grid dashboard-grid-1">
                             <TrendChart
-                                data={stats.appointmentStats.byDate}
+                                data={appointmentsDummy?.appointmentStats?.byDate}
                                 title={`Appointments ${period === DASHBOARD_PERIODS.TODAY ? 'Today' : period === DASHBOARD_PERIODS.WEEK ? 'This Week' : 'This Month'}`}
                             />
                         </div>
 
                         <div className="dashboard-grid dashboard-grid-2">
-                            <DoctorOccupancy data={stats.doctorStats} />
-                            <PatientStats data={stats.patientStats} />
+                            <DoctorOccupancy data={appointmentsDummy?.doctorStats} />
+                            <PatientStats data={appointmentsDummy?.patientStats} />
                         </div>
                     </motion.div>
                 )}

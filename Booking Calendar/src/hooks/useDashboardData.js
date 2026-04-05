@@ -127,6 +127,52 @@ const buildDummyData = (period) => {
             },
         },
 
+        appointments: {
+            appointmentStats: {
+                total: Math.floor(710 * m),
+                today: Math.floor(48 * m),
+                byStatus: {
+                    onthyfly: Math.floor(22 * m),
+                    confirmed: Math.floor(180 * m),
+                    arrived: Math.floor(95 * m),
+                    in_chair: Math.floor(60 * m),
+                    in_payment: Math.floor(30 * m),
+                    paid: Math.floor(290 * m),
+                    visit_closed: Math.floor(33 * m),
+                },
+                byDate: Array.from({ length: trendDays }, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (trendDays - 1 - i));
+                    return {
+                        date: d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
+                        fullDate: d.toISOString().slice(0, 10),
+                        count: Math.floor((20 + Math.random() * 30) * m),
+                    };
+                }),
+                averageDuration: 35,
+            },
+            doctorStats: [
+                { id: 1, name: 'Dr. Ahmed Khalil',   appointmentCount: Math.floor(25 * m), totalMinutes: Math.floor(875 * m),  occupancyRate: 82, statusBreakdown: { paid: Math.floor(20 * m), confirmed: Math.floor(5 * m) } },
+                { id: 2, name: 'Dr. Sara Hassan',    appointmentCount: Math.floor(22 * m), totalMinutes: Math.floor(770 * m),  occupancyRate: 74, statusBreakdown: { paid: Math.floor(17 * m), confirmed: Math.floor(5 * m) } },
+                { id: 3, name: 'Dr. Omar Nasser',    appointmentCount: Math.floor(20 * m), totalMinutes: Math.floor(700 * m),  occupancyRate: 67, statusBreakdown: { paid: Math.floor(14 * m), arrived: Math.floor(6 * m) } },
+                { id: 4, name: 'Dr. Layla Mostafa',  appointmentCount: Math.floor(18 * m), totalMinutes: Math.floor(630 * m),  occupancyRate: 60, statusBreakdown: { paid: Math.floor(16 * m), confirmed: Math.floor(2 * m) } },
+                { id: 5, name: 'Dr. Yusuf Adel',     appointmentCount: Math.floor(15 * m), totalMinutes: Math.floor(525 * m),  occupancyRate: 50, statusBreakdown: { paid: Math.floor(10 * m), in_chair: Math.floor(5 * m) } },
+            ],
+            patientStats: {
+                totalPatients: Math.floor(710 * m),
+                uniquePatients: Math.floor(520 * m),
+                newPatients: Math.floor(185 * m),
+                returningPatients: Math.floor(335 * m),
+                frequentVisitors: [
+                    { name: 'Mohammed Al-Rashid', count: 5 },
+                    { name: 'Fatima Al-Zahrani',  count: 4 },
+                    { name: 'Khalid Al-Otaibi',   count: 4 },
+                    { name: 'Noura Al-Qahtani',   count: 3 },
+                    { name: 'Abdulaziz Al-Dossari', count: 3 },
+                ],
+            },
+        },
+
         performance: {
             statusOverview: {
                 totalProcedures: Math.floor(124 * m),

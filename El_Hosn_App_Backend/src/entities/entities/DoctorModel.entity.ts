@@ -1,6 +1,4 @@
-import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { ResPartner } from './ResPartner.entity';
-import { DoctorSpecialityModel } from './DoctorSpecialityModel.entity';
+import { Entity, Column, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('doctor_model', { schema: 'public' })
 export class DoctorModel {
@@ -10,22 +8,17 @@ export class DoctorModel {
   @Column()
   partner_id!: number;
 
-  @ManyToOne(() => ResPartner)
-  @JoinColumn({ name: 'partner_id' })
-  partner!: ResPartner;
-
   @Column({ nullable: true })
   age!: number | null;
 
-  @Column({ nullable: true })
-  doctor_degree!: number | null;
+  @Column()
+  doctor_degree!: number;
 
-  @Column({ nullable: true })
-  doctor_speciality!: number | null;
+  @Column()
+  doctor_speciality!: number;
 
-  @ManyToOne(() => DoctorSpecialityModel)
-  @JoinColumn({ name: 'doctor_speciality' })
-  doctorSpeciality!: DoctorSpecialityModel;
+  @Column()
+  experience_years!: number;
 
   @Column({ nullable: true })
   create_uid!: number | null;
@@ -33,16 +26,67 @@ export class DoctorModel {
   @Column({ nullable: true })
   write_uid!: number | null;
 
+  @Column()
+  name_ar!: string;
+
   @Column({ nullable: true })
-  gender!: string | null;
+  age_ar!: string | null;
+
+  @Column({ nullable: true })
+  date_of_birth_ar!: string | null;
+
+  @Column({ nullable: true })
+  degree_ar!: string | null;
+
+  @Column({ nullable: true })
+  speciality_ar!: string | null;
+
+  @Column()
+  gender!: string;
+
+  @Column({ nullable: true })
+  gender_ar!: string | null;
+
+  @Column({ nullable: true })
+  experience_years_ar!: string | null;
+
+  @Column({ nullable: true })
+  join_date_ar!: string | null;
+
+  @Column({ nullable: true })
+  job_position_ar!: string | null;
+
+  @Column({ nullable: true })
+  image_hash!: string | null;
+
+  @Column({ nullable: true })
+  profile_image_hash!: string | null;
 
   @Column({ nullable: true })
   date_of_birth!: Date | null;
+
+  @Column()
+  join_date!: Date;
+
+  @Column()
+  about!: string;
+
+  @Column({ nullable: true })
+  about_ar!: string | null;
+
+  @Column({ nullable: true })
+  is_a_doctor!: boolean | null;
 
   @Column({ nullable: true })
   create_date!: Date | null;
 
   @Column({ nullable: true })
   write_date!: Date | null;
+
+  @Column()
+  branch_id!: number;
+
+  @Column({ nullable: true })
+  experience!: number | null;
 
 }

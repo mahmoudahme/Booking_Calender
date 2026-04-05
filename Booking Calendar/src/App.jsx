@@ -172,7 +172,7 @@ function App() {
 
         // "Arrived" → open Odoo only, no status update
         if (newState === 'arrived') {
-            window.open(`http://72.62.16.223:8019/odoo/action-498/${editingAppointment.id}`, '_blank');
+            window.open(`http://46.225.164.73:8069/odoo/action-693/${editingAppointment.id}`, '_blank');
             return;
         }
 
@@ -436,6 +436,8 @@ function App() {
                             setSelectedDoctors={setSelectedDoctors}
                             selectedStates={selectedStates}
                             setSelectedStates={setSelectedStates}
+                            doctorSlots={doctorSlots}
+                            viewMode={viewMode}
                         />
                     </>
                 )}
@@ -449,6 +451,7 @@ function App() {
                 setSelectedDuration={setSelectedDuration}
                 viewMode={viewMode}
                 doctors={doctors}
+                doctorSlots={doctorSlots}
                 setSelectedSlot={setSelectedSlot}
                 isSlotAvailable={isSlotAvailable}
                 onSubmit={handleBookingSubmit}

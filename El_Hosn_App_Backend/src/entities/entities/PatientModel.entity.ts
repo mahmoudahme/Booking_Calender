@@ -24,6 +24,9 @@ export class PatientModel {
   beds_available!: number | null;
 
   @Column({ nullable: true })
+  patient_age!: number | null;
+
+  @Column({ nullable: true })
   create_uid!: number | null;
 
   @Column({ nullable: true })
@@ -38,8 +41,8 @@ export class PatientModel {
   @Column({ nullable: true })
   last_name!: string | null;
 
-  @Column({ nullable: true })
-  gender!: string | null;
+  @Column()
+  gender!: string;
 
   @Column({ nullable: true })
   mobile!: string | null;
@@ -52,9 +55,6 @@ export class PatientModel {
 
   @Column({ nullable: true })
   phone_country_code!: string | null;
-
-  @Column({ nullable: true })
-  phone_number!: string | null;
 
   @Column({ nullable: true })
   mobile_country_code!: string | null;
@@ -93,8 +93,10 @@ export class PatientModel {
   occupation!: string | null;
 
   @Column({ nullable: true })
-  id_type!: string | null;
+  passport!: string | null;
 
+  @Column({ nullable: true })
+  id_type!: string | null;
 
   @Column({ nullable: true })
   other_identification_document_types!: string | null;
@@ -130,22 +132,40 @@ export class PatientModel {
   visit_classification!: string | null;
 
   @Column({ nullable: true })
-  patient_type!: string | null;
+  image_hash!: string | null;
 
   @Column({ nullable: true })
-  date_of_birth!: Date | null;
+  patient_type!: string | null;
+
+  @Column()
+  date_of_birth!: Date;
+
+  @Column({ nullable: true })
+  first_visit!: Date | null;
+
+  @Column({ nullable: true })
+  last_visit!: Date | null;
 
   @Column({ nullable: true })
   expir_date!: Date | null;
 
-  @Column({ nullable: true })
-  address!: string | null;
+  @Column()
+  address!: string;
 
   @Column({ nullable: true })
   remarks!: string | null;
 
   @Column({ nullable: true })
   complaint!: string | null;
+
+  @Column({ nullable: true })
+  medical_alert!: string | null;
+
+  @Column({ nullable: true })
+  surgical_history!: string | null;
+
+  @Column({ nullable: true })
+  allergies!: string | null;
 
   @Column({ nullable: true })
   mode_sms!: boolean | null;
@@ -169,18 +189,9 @@ export class PatientModel {
   charge!: number | null;
 
   @Column({ nullable: true })
-  passport!: string | null;
+  phone_number!: string | null;
 
-  @Column({ nullable: true })
-  medical_alert!: string | null;
-
-  @Column({ nullable: true })
-  surgical_history!: string | null;
-
-  @Column({ nullable: true })
-  allergies!: string | null;
-
-  @Column({ nullable: true })
-  token_device!: string | null;
+  @Column({ type: 'jsonb', nullable: true })
+  token_device!: any | null;
 
 }

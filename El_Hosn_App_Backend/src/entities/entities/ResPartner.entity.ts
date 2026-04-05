@@ -123,6 +123,9 @@ export class ResPartner {
   write_date!: Date | null;
 
   @Column({ nullable: true })
+  contact_address_complete!: string | null;
+
+  @Column({ nullable: true })
   message_bounce!: number | null;
 
   @Column({ nullable: true })
@@ -204,6 +207,9 @@ export class ResPartner {
   online_partner_information!: string | null;
 
   @Column({ nullable: true })
+  sale_warn_msg!: string | null;
+
+  @Column({ nullable: true })
   followup_reminder_type!: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
@@ -213,19 +219,7 @@ export class ResPartner {
   followup_responsible_id!: any | null;
 
   @Column({ nullable: true })
-  sale_warn_msg!: string | null;
-
-  @Column({ nullable: true })
-  contact_address_complete!: string | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  property_stock_customer!: any | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  property_stock_supplier!: any | null;
-
-  @Column({ nullable: true })
-  picking_warn_msg!: string | null;
+  is_created_by_ocr!: boolean | null;
 
   @Column({ nullable: true })
   buyer_id!: number | null;
@@ -241,6 +235,15 @@ export class ResPartner {
 
   @Column({ nullable: true })
   purchase_warn_msg!: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  property_stock_customer!: any | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  property_stock_supplier!: any | null;
+
+  @Column({ nullable: true })
+  picking_warn_msg!: string | null;
 
   @Column({ nullable: true })
   suggest_days!: number | null;
@@ -258,18 +261,6 @@ export class ResPartner {
   group_on!: string;
 
   @Column({ nullable: true })
-  vies_valid!: boolean | null;
-
-  @Column({ nullable: true })
-  l10n_sa_edi_building_number!: string | null;
-
-  @Column({ nullable: true })
-  l10n_sa_edi_plot_identification!: string | null;
-
-  @Column({ nullable: true })
-  l10n_sa_edi_additional_identification_scheme!: string | null;
-
-  @Column({ nullable: true })
-  l10n_sa_edi_additional_identification_number!: string | null;
+  calendar_last_notif_ack!: Date | null;
 
 }
