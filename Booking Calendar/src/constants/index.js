@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = 'http://localhost:3001/api/v1/booking-calendar';
+export const API_BASE_URL = 'http://46.225.164.73:3000/api/v1/booking-calendar';
 
 // Time Configuration
 export const HOURS = (() => {
