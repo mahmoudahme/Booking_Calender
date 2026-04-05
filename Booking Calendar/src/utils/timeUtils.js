@@ -79,6 +79,20 @@ export const normalizeTime = (timeStr) => {
 };
 
 /**
+ * Parse a phone number into country code and local number
+ * e.g. "+966562236979" → { countryCode: "+966", number: "562236979" }
+ */
+export const parsePhone = (phone) => {
+    if (!phone) return { countryCode: '', number: '' };
+    const cleaned = phone.trim().replace(/\s+/g, '');
+    if (cleaned.startsWith('+')) {
+        const match = cleaned.match(/^(\+\d{1,3})(\d+)$/);
+        if (match) return { countryCode: match[1], number: match[2] };
+    }
+    return { countryCode: '', number: cleaned };
+};
+
+/**
  * Convert minutes to time string (HH:mm)
  */
 export const minutesToTime = (minutes) => {

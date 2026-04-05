@@ -319,7 +319,10 @@ export class BookingCalendarService {
                 company: 1,
                 // Patient personal data
                 mobile: patientDetails?.mobile || patient?.mobile || null,
+                mobile_number: patientDetails?.mobile || patient?.mobile || null,
+                mobile_country_code : patientDetails?.phone_country_code || null,
                 phone_number: patientDetails?.mobile || patient?.mobile || null,
+                phone_country_code: patientDetails?.phone_country_code || null,
                 gender: patientDetails?.gender ? (patientDetails.gender.toLowerCase() === 'male' ? 'Male' : 'Female') : (patient?.gender || null),
                 age: patientDetails?.age ? (typeof patientDetails.age === 'string' ? parseInt(patientDetails.age) : patientDetails.age) : (patient?.age || null),
                 vat: patientDetails?.nationalId || patient?.passport || null,
@@ -883,6 +886,10 @@ export class BookingCalendarService {
             // Update basic appointment fields if provided
             if (patientDetails) {
                 appointment.mobile = patientDetails.mobile || appointment.mobile;
+                appointment.phone_number = patientDetails.mobile || appointment.phone_number;
+                if (patientDetails.phone_country_code) {
+                    appointment.phone_country_code = patientDetails.phone_country_code;
+                }
                 appointment.vat = patientDetails.nationalId || appointment.vat;
                 appointment.id_type = patientDetails.idType || appointment.id_type;
                 appointment.nationality = patientDetails.nationalityId ? Number(patientDetails.nationalityId) : appointment.nationality;

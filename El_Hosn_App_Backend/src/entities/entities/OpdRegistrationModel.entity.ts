@@ -32,8 +32,6 @@ export class OpdRegistrationModel {
   @Column({ nullable: true })
   doctor_find_us!: number | null;
 
-
-
   @Column({ nullable: true })
   cityy!: number | null;
 
@@ -45,7 +43,6 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   nok_nationality!: number | null;
-
 
   @Column({ nullable: true })
   department_id!: number | null;
@@ -166,7 +163,6 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   id_type!: string | null;
-
 
   @Column({ nullable: true })
   other_identifier_type!: string | null;
@@ -317,5 +313,83 @@ export class OpdRegistrationModel {
 
   @Column({ nullable: true })
   patient_seq!: string | null;
+
+  @Column({ nullable: true })
+  consultation_type!: number | null;
+
+  @Column({ nullable: true })
+  consultation_invoice!: number | null;
+
+  @Column({ nullable: true })
+  card_type!: string | null;
+
+  @Column({ nullable: true })
+  document_image_hash!: string | null;
+
+  @Column({ nullable: true })
+  stamped_image_hash!: string | null;
+
+  @Column({ nullable: true })
+  stamped_pdf_hash!: string | null;
+
+  @Column({ nullable: true })
+  visit_type!: string | null;
+
+  @Column({ nullable: true })
+  coordinator_discount!: number | null;
+
+  @Column({ nullable: true })
+  final_amount!: number | null;
+
+  @Column({ nullable: true })
+  consent_template_id!: number | null;
+
+  @Column({ nullable: true })
+  consent_subject!: string | null;
+
+  @Column({ nullable: true })
+  consent_date!: Date | null;
+
+  @Column({ nullable: true })
+  consent_rendered_body!: string | null;
+
+  @Column({ nullable: true })
+  consultation!: boolean | null;
+
+  @Column({ nullable: true })
+  payment_line_count!: number | null;
+
+  @Column({ nullable: true })
+  single_journal_id!: number | null;
+
+  @Column({ nullable: true })
+  single_reference_id!: number | null;
+
+  @Column({ nullable: true })
+  single_payment_mode!: string | null;
+
+  @Column({ nullable: true })
+  appointment_type!: string | null;
+
+  @Column({ nullable: true })
+  consultation_channel!: string | null;
+
+  @Column({ nullable: true })
+  meeting_url!: string | null;
+
+  @Column({ nullable: true })
+  related_to_offer!: boolean | null;
+
+  @Column({ nullable: true })
+  mobile_country_code!: string | null;
+
+  @Column({ nullable: true })
+  mobile_number!: string | null;
+
+  @Column({ nullable: true })
+  website_order_items_json!: string | null;
+
+  @Column({ nullable: true })
+  crm_lead_id!: number | null;
 
 }

@@ -6,7 +6,7 @@ import { useSearch } from './hooks/useSearch';
 import { useDragSelection } from './hooks/useDragSelection';
 import { useTheme } from './hooks/useTheme';
 import { useOdooContext } from './hooks/useOdooContext';
-import { timeToMinutes } from './utils/timeUtils';
+import { parsePhone } from './utils/timeUtils';
 import { VIEW_MODES, DEFAULT_DURATION } from './constants';
 import bookingAPI from './services/api';
 import Header from './components/Header/Header';
@@ -229,14 +229,23 @@ function App() {
             patientName = formData.get('patientName') || '';
         }
 
-        const mobile = formData.get('mobile');
+        const mobileRaw = formData.get('mobile');
+        const additionalPhoneRaw = formData.get('additionalPhone');
+
+        const mobileParsed = parsePhone(mobileRaw);
+        const additionalPhoneParsed = parsePhone(additionalPhoneRaw);
+
+        const mobile = mobileParsed.number;
+        const mobileCountryCode = mobileParsed.countryCode || '+966';
+        const additionalPhone = additionalPhoneParsed.number;
+        const additionalPhoneCountryCode = additionalPhoneParsed.countryCode || (additionalPhoneRaw ? '+966' : '');
+
         const nationalId = formData.get('nationalId');
         const idType = formData.get('idType');
         const nationalityId = formData.get('nationalityId');
         const dob = formData.get('dob');
         const gender = formData.get('gender');
         const age = formData.get('age');
-        const additionalPhone = formData.get('additionalPhone');
         const notes = formData.get('notes');
         const patientId = formData.get('patientId');
         const patientSrcId = formData.get('patientSrcId') ? parseInt(formData.get('patientSrcId')) : null;
@@ -272,13 +281,15 @@ function App() {
                     middleName,
                     lastName,
                     mobile,
+                    phone_country_code: mobileCountryCode,
                     nationalId,
                     idType,
                     nationalityId: nationalityId ? parseInt(nationalityId) : null,
                     dob,
                     gender,
                     age,
-                    additionalPhone
+                    additionalPhone,
+                    additional_phone_country_code: additionalPhoneCountryCode,
                 },
                 date: selectedSlot.date,
                 time: selectedSlot.time,

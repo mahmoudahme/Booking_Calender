@@ -19,6 +19,18 @@ export class PatientDetailsDto {
 
     @IsString()
     @IsOptional()
+    phone_country_code?: string;
+
+    @IsString()
+    @IsOptional()
+    additionalPhone?: string;
+
+    @IsString()
+    @IsOptional()
+    additional_phone_country_code?: string;
+
+    @IsString()
+    @IsOptional()
     nationalId?: string;
 
     @IsString()
@@ -31,10 +43,6 @@ export class PatientDetailsDto {
 
     @IsOptional()
     age?: number | string;
-
-    @IsString()
-    @IsOptional()
-    additionalPhone?: string;
 
     @IsEnum(['iqama', 'national_id', 'passport'])
     @IsOptional()
