@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Calendar, Users, Stethoscope, Clock, Activity,
-    DollarSign, Award, Building2, Package, BarChart3
+    DollarSign, Award, Building2, Package, BarChart3,
+    Target, MessageCircle, CalendarCheck,
 } from 'lucide-react';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import { useDashboardData } from '../../hooks/useDashboardData';
@@ -28,6 +29,11 @@ import DemographicsChart from './DemographicsChart';
 import ProcedureStatusChart from './ProcedureStatusChart';
 import DoctorKPIChart from './DoctorKPIChart';
 import HourlyDistributionChart from './HourlyDistributionChart';
+import LeadStatusChart from './LeadStatusChart';
+import LeadSourceChart from './LeadSourceChart';
+import LeadConversionTrend from './LeadConversionTrend';
+import CommunicationPanel from './CommunicationPanel';
+import BookingPerformancePanel from './BookingPerformancePanel';
 
 const TABS = [
     { id: 'financial', label: 'Financial', icon: DollarSign },
@@ -35,6 +41,9 @@ const TABS = [
     { id: 'patients', label: 'Patient Analytics', icon: Users },
     { id: 'performance', label: 'Performance', icon: BarChart3 },
     { id: 'appointments', label: 'Appointments', icon: Calendar },
+    { id: 'lead-analytics', label: 'Lead Analytics', icon: Target },
+    { id: 'communication', label: 'Communication', icon: MessageCircle },
+    { id: 'booking-performance', label: 'Booking Performance', icon: CalendarCheck },
 ];
 
 const tabContentVariants = {
@@ -54,6 +63,7 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
     const patients = dashboardData?.patients;
     const performance = dashboardData?.performance;
     const appointmentsDummy = dashboardData?.appointments;
+    const leads = dashboardData?.leads;
 
     return (
         <motion.div
@@ -291,6 +301,153 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                         <div className="dashboard-grid dashboard-grid-2">
                             <DoctorOccupancy data={appointmentsDummy?.doctorStats} />
                             <PatientStats data={appointmentsDummy?.patientStats} />
+                        </div>
+                    </motion.div>
+                )}
+                {activeTab === 'lead-analytics' && (
+                    <motion.div key="lead-analytics" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit">
+                        <div className="dashboard-grid dashboard-grid-4">
+                            <StatCard
+                                title="Total Leads"
+                                value={leads?.summary?.totalLeads ?? '—'}
+                                subtitle={`${period === DASHBOARD_PERIODS.TODAY ? 'Today' : period === DASHBOARD_PERIODS.WEEK ? 'This Week' : 'This Month'}`}
+                                icon={Target}
+                                color="blue"
+                            />
+                            <StatCard
+                                title="New Leads"
+                                value={leads?.byStatus?.[0]?.value ?? '—'}
+                                subtitle="Awaiting first contact"
+                                icon={Target}
+                                color="primary"
+                            />
+                            <StatCard
+                                title="In Progress"
+                                value={leads?.byStatus?.[1]?.value ?? '—'}
+                                subtitle="Currently being handled"
+                                icon={Activity}
+                                color="orange"
+                            />
+                            <StatCard
+                                title="Conversion Rate"
+                                value={leads?.summary?.conversionRate !== undefined ? `${leads.summary.conversionRate}%` : '—'}
+                                subtitle="Leads converted to bookings"
+                                icon={CalendarCheck}
+                                color="green"
+                                trend={leads?.summary?.conversionRate}
+                            />
+                        </div>
+
+                        <div className="dashboard-grid dashboard-grid-2">
+                            <LeadStatusChart
+                                data={leads?.byStatus}
+                                conversionRate={leads?.summary?.conversionRate}
+                            />
+                            <LeadSourceChart data={leads?.bySource} />
+                        </div>
+
+                        <div className="dashboard-grid dashboard-grid-1">
+                            <LeadConversionTrend data={leads?.conversionTrend} />
+                        </div>
+                    </motion.div>
+                )}
+
+                {activeTab === 'communication' && (
+                    <motion.div key="communication" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit">
+                        <div className="dashboard-grid dashboard-grid-4">
+                            <StatCard
+                                title="Avg First Response"
+                                value={leads?.summary?.avgFirstResponseMinutes !== undefined
+                                    ? `${leads.summary.avgFirstResponseMinutes}m`
+                                    : '—'}
+                                subtitle="Time to first reply"
+                                icon={Clock}
+                                color="orange"
+                            />
+                            <StatCard
+                                title="Unanswered Threads"
+                                value={leads?.summary?.unansweredThreads ?? '—'}
+                                subtitle="Pending — need a reply"
+                                icon={MessageCircle}
+                                color="purple"
+                            />
+                            <StatCard
+                                title="Active Chats"
+                                value={leads?.summary?.activeChatVolume ?? '—'}
+                                subtitle="Open conversations"
+                                icon={MessageCircle}
+                                color="primary"
+                            />
+                            <StatCard
+                                title="Chat-to-Lead Rate"
+                                value={leads?.summary?.activeChatVolume && leads?.summary?.totalLeads
+                                    ? `${Math.round((leads.summary.totalLeads / leads.summary.activeChatVolume) * 10)}%`
+                                    : '—'}
+                                subtitle="Chats that became leads"
+                                icon={Activity}
+                                color="blue"
+                            />
+                        </div>
+
+                        <div className="dashboard-grid dashboard-grid-1">
+                            <CommunicationPanel
+                                data={leads?.summary ? {
+                                    avgFirstResponseMinutes: leads.summary.avgFirstResponseMinutes,
+                                    unansweredThreads: leads.summary.unansweredThreads,
+                                    activeChatVolume: leads.summary.activeChatVolume,
+                                    responseTimeTrend: leads.responseTimeTrend,
+                                } : null}
+                            />
+                        </div>
+                    </motion.div>
+                )}
+
+                {activeTab === 'booking-performance' && (
+                    <motion.div key="booking-performance" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit">
+                        <div className="dashboard-grid dashboard-grid-4">
+                            <StatCard
+                                title="Confirmed Bookings"
+                                value={leads?.summary?.confirmedAppointments ?? '—'}
+                                subtitle="Successfully scheduled"
+                                icon={CalendarCheck}
+                                color="green"
+                            />
+                            <StatCard
+                                title="Cancelled"
+                                value={leads?.summary?.cancelledAppointments ?? '—'}
+                                subtitle="Bookings cancelled"
+                                icon={Calendar}
+                                color="orange"
+                            />
+                            <StatCard
+                                title="Cancellation Rate"
+                                value={leads?.summary?.cancellationRate !== undefined ? `${leads.summary.cancellationRate}%` : '—'}
+                                subtitle="% of bookings cancelled"
+                                icon={Activity}
+                                color="purple"
+                            />
+                            <StatCard
+                                title="Show Rate"
+                                value={leads?.summary?.cancellationRate !== undefined
+                                    ? `${100 - leads.summary.cancellationRate}%`
+                                    : '—'}
+                                subtitle="Bookings that were kept"
+                                icon={CalendarCheck}
+                                color="primary"
+                                trend={leads?.summary?.cancellationRate !== undefined
+                                    ? 100 - leads.summary.cancellationRate
+                                    : undefined}
+                            />
+                        </div>
+
+                        <div className="dashboard-grid dashboard-grid-1">
+                            <BookingPerformancePanel
+                                data={leads?.summary ? {
+                                    confirmedAppointments: leads.summary.confirmedAppointments,
+                                    cancelledAppointments: leads.summary.cancelledAppointments,
+                                    cancellationRate: leads.summary.cancellationRate,
+                                } : null}
+                            />
                         </div>
                     </motion.div>
                 )}

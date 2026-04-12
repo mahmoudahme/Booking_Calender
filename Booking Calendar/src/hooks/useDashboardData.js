@@ -25,6 +25,30 @@ const generateDailyTrend = (days, multiplier) => {
     return result;
 };
 
+const generateLeadTrend = (days, multiplier) => {
+    const result = [];
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+        const leads = Math.floor((25 + Math.random() * 20) * multiplier);
+        const bookings = Math.floor(leads * (0.35 + Math.random() * 0.15));
+        result.push({ date: dateStr, leads, bookings });
+    }
+    return result;
+};
+
+const generateResponseTrend = (days) => {
+    const result = [];
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+        result.push({ date: dateStr, avgMinutes: Math.floor(8 + Math.random() * 18) });
+    }
+    return result;
+};
+
 const generateDailyTraffic = (days, multiplier) => {
     const result = [];
     for (let i = days - 1; i >= 0; i--) {
@@ -171,6 +195,34 @@ const buildDummyData = (period) => {
                     { name: 'Abdulaziz Al-Dossari', count: 3 },
                 ],
             },
+        },
+
+        leads: {
+            summary: {
+                totalLeads: Math.floor(340 * m),
+                conversionRate: 42,
+                avgFirstResponseMinutes: Math.floor(12 + Math.random() * 8),
+                unansweredThreads: Math.floor(7 * m),
+                activeChatVolume: Math.floor(28 * m),
+                confirmedAppointments: Math.floor(143 * m),
+                cancellationRate: 14,
+                cancelledAppointments: Math.floor(23 * m),
+            },
+            byStatus: [
+                { name: 'New', value: Math.floor(112 * m) },
+                { name: 'In Progress', value: Math.floor(85 * m) },
+                { name: 'Converted', value: Math.floor(143 * m) },
+            ],
+            bySource: [
+                { source: 'Facebook', leads: Math.floor(98 * m), converted: Math.floor(42 * m) },
+                { source: 'WhatsApp', leads: Math.floor(85 * m), converted: Math.floor(38 * m) },
+                { source: 'Direct Call', leads: Math.floor(62 * m), converted: Math.floor(30 * m) },
+                { source: 'Instagram', leads: Math.floor(45 * m), converted: Math.floor(17 * m) },
+                { source: 'Referral', leads: Math.floor(32 * m), converted: Math.floor(12 * m) },
+                { source: 'Website', leads: Math.floor(18 * m), converted: Math.floor(4 * m) },
+            ],
+            conversionTrend: generateLeadTrend(trendDays, m),
+            responseTimeTrend: generateResponseTrend(trendDays),
         },
 
         performance: {
