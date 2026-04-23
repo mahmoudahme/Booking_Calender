@@ -55,15 +55,24 @@ const tabContentVariants = {
 const Dashboard = ({ appointments, doctors, selectedDate }) => {
     const [period, setPeriod] = useState(DASHBOARD_PERIODS.WEEK);
     const [activeTab, setActiveTab] = useState('financial');
-    const stats = useDashboardStats(appointments, doctors, period, selectedDate);
-    const { data: dashboardData } = useDashboardData(period);
+    const [customRange, setCustomRange] = useState({ start: '', end: '' });
+    const stats = useDashboardStats(appointments, doctors, period, selectedDate, customRange);
+    const { data: dashboardData } = useDashboardData(period, customRange);
 
-    const financial = dashboardData?.financial;
-    const services = dashboardData?.services;
-    const patients = dashboardData?.patients;
-    const performance = dashboardData?.performance;
+    const periodLabel = period === DASHBOARD_PERIODS.TODAY ? 'Today'
+        : period === DASHBOARD_PERIODS.WEEK ? 'This Week'
+        : period === DASHBOARD_PERIODS.CUSTOM
+            ? (customRange?.start && customRange?.end ? `${customRange.start} → ${customRange.end}` : 'Custom Range')
+        : 'This Month';
+
+    const financial        = dashboardData?.financial;
+    const services         = dashboardData?.services;
+    const patients         = dashboardData?.patients;
+    const performance      = dashboardData?.performance;
     const appointmentsDummy = dashboardData?.appointments;
-    const leads = dashboardData?.leads;
+    const leads            = dashboardData?.leads;
+    const communication    = dashboardData?.communication;
+    const bookingPerf      = dashboardData?.bookingPerformance;
 
     return (
         <motion.div
@@ -74,6 +83,8 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
             <DashboardHeader
                 period={period}
                 setPeriod={setPeriod}
+                customRange={customRange}
+                setCustomRange={setCustomRange}
                 title="Management Dashboard"
             />
 
@@ -84,7 +95,7 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                     value={financial ? (financial.summary.totalRevenue >= 1000000
                         ? `${(financial.summary.totalRevenue / 1000000).toFixed(2)}M`
                         : `${(financial.summary.totalRevenue / 1000).toFixed(0)}K`) : '—'}
-                    subtitle={`SAR — ${period === DASHBOARD_PERIODS.TODAY ? 'Today' : period === DASHBOARD_PERIODS.WEEK ? 'This Week' : 'This Month'}`}
+                    subtitle={`SAR — ${periodLabel}`}
                     icon={DollarSign}
                     color="green"
                     trend={financial ? 12.5 : undefined}
@@ -92,7 +103,7 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                 <StatCard
                     title="Appointments"
                     value={stats.appointmentStats.total || (performance?.statusOverview?.totalProcedures ?? '—')}
-                    subtitle={`${period === DASHBOARD_PERIODS.TODAY ? 'Today' : period === DASHBOARD_PERIODS.WEEK ? 'This Week' : 'This Month'}`}
+                    subtitle={periodLabel}
                     icon={Calendar}
                     color="primary"
                 />
@@ -197,28 +208,30 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                             <StatCard
                                 title="New Patients"
                                 value={patients?.todaySummary?.newPatients ?? '—'}
-                                subtitle={patients ? `${patients.todaySummary.newPatientPercentage}% of today` : ''}
+                                subtitle={patients ? `${patients.todaySummary.newPatientPercentage}% of period — first visit` : ''}
                                 icon={Users}
                                 color="blue"
                             />
                             <StatCard
                                 title="Returning Patients"
                                 value={patients?.todaySummary?.returningPatients ?? '—'}
-                                subtitle="Came back again"
+                                subtitle={patients ? `${patients.todaySummary.total} total in ${periodLabel}` : 'Came back again'}
                                 icon={Users}
                                 color="green"
                             />
                             <StatCard
-                                title="Avg Wait Time"
-                                value={patients?.efficiencyByBranch ? `${Math.round(patients.efficiencyByBranch.reduce((s, b) => s + b.averageWaitTime, 0) / patients.efficiencyByBranch.length)}m` : '—'}
-                                subtitle="Across all branches"
+                                title="Avg Appointment Duration"
+                                value={patients?.avgDurationMinutes ? `${patients.avgDurationMinutes}m` : '—'}
+                                subtitle="Average session length"
                                 icon={Clock}
                                 color="orange"
                             />
                             <StatCard
-                                title="Avg No-Show Rate"
-                                value={patients?.efficiencyByBranch ? `${Math.round(patients.efficiencyByBranch.reduce((s, b) => s + b.noShowRate, 0) / patients.efficiencyByBranch.length)}%` : '—'}
-                                subtitle="Missed appointments"
+                                title="Unconfirmed Rate"
+                                value={patients?.efficiencyByBranch?.length > 0
+                                    ? `${Math.round(patients.efficiencyByBranch.reduce((s, b) => s + (b.noShowRate ?? 0), 0) / patients.efficiencyByBranch.length)}%`
+                                    : '—'}
+                                subtitle="Booked but not confirmed"
                                 icon={Activity}
                                 color="purple"
                             />
@@ -294,7 +307,7 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                         <div className="dashboard-grid dashboard-grid-1">
                             <TrendChart
                                 data={appointmentsDummy?.appointmentStats?.byDate}
-                                title={`Appointments ${period === DASHBOARD_PERIODS.TODAY ? 'Today' : period === DASHBOARD_PERIODS.WEEK ? 'This Week' : 'This Month'}`}
+                                title={`Appointments — ${periodLabel}`}
                             />
                         </div>
 
@@ -310,7 +323,7 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                             <StatCard
                                 title="Total Leads"
                                 value={leads?.summary?.totalLeads ?? '—'}
-                                subtitle={`${period === DASHBOARD_PERIODS.TODAY ? 'Today' : period === DASHBOARD_PERIODS.WEEK ? 'This Week' : 'This Month'}`}
+                                subtitle={periodLabel}
                                 icon={Target}
                                 color="blue"
                             />
@@ -357,8 +370,8 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                         <div className="dashboard-grid dashboard-grid-4">
                             <StatCard
                                 title="Avg First Response"
-                                value={leads?.summary?.avgFirstResponseMinutes !== undefined
-                                    ? `${leads.summary.avgFirstResponseMinutes}m`
+                                value={communication?.summary?.avgFirstResponseMinutes != null
+                                    ? `${communication.summary.avgFirstResponseMinutes}m`
                                     : '—'}
                                 subtitle="Time to first reply"
                                 icon={Clock}
@@ -366,24 +379,22 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                             />
                             <StatCard
                                 title="Unanswered Threads"
-                                value={leads?.summary?.unansweredThreads ?? '—'}
+                                value={communication?.summary?.unansweredThreads ?? '—'}
                                 subtitle="Pending — need a reply"
                                 icon={MessageCircle}
                                 color="purple"
                             />
                             <StatCard
                                 title="Active Chats"
-                                value={leads?.summary?.activeChatVolume ?? '—'}
+                                value={communication?.summary?.activeChatVolume ?? '—'}
                                 subtitle="Open conversations"
                                 icon={MessageCircle}
                                 color="primary"
                             />
                             <StatCard
-                                title="Chat-to-Lead Rate"
-                                value={leads?.summary?.activeChatVolume && leads?.summary?.totalLeads
-                                    ? `${Math.round((leads.summary.totalLeads / leads.summary.activeChatVolume) * 10)}%`
-                                    : '—'}
-                                subtitle="Chats that became leads"
+                                title="Lead Messages"
+                                value={communication?.summary?.totalLeadMessages ?? '—'}
+                                subtitle="Messages on CRM leads"
                                 icon={Activity}
                                 color="blue"
                             />
@@ -391,11 +402,11 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
 
                         <div className="dashboard-grid dashboard-grid-1">
                             <CommunicationPanel
-                                data={leads?.summary ? {
-                                    avgFirstResponseMinutes: leads.summary.avgFirstResponseMinutes,
-                                    unansweredThreads: leads.summary.unansweredThreads,
-                                    activeChatVolume: leads.summary.activeChatVolume,
-                                    responseTimeTrend: leads.responseTimeTrend,
+                                data={communication?.summary ? {
+                                    avgFirstResponseMinutes: communication.summary.avgFirstResponseMinutes,
+                                    unansweredThreads: communication.summary.unansweredThreads,
+                                    activeChatVolume: communication.summary.activeChatVolume,
+                                    responseTimeTrend: communication.responseTimeTrend,
                                 } : null}
                             />
                         </div>
@@ -407,45 +418,43 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                         <div className="dashboard-grid dashboard-grid-4">
                             <StatCard
                                 title="Confirmed Bookings"
-                                value={leads?.summary?.confirmedAppointments ?? '—'}
+                                value={bookingPerf?.summary?.confirmedAppointments ?? '—'}
                                 subtitle="Successfully scheduled"
                                 icon={CalendarCheck}
                                 color="green"
                             />
                             <StatCard
                                 title="Cancelled"
-                                value={leads?.summary?.cancelledAppointments ?? '—'}
+                                value={bookingPerf?.summary?.cancelledAppointments ?? '—'}
                                 subtitle="Bookings cancelled"
                                 icon={Calendar}
                                 color="orange"
                             />
                             <StatCard
                                 title="Cancellation Rate"
-                                value={leads?.summary?.cancellationRate !== undefined ? `${leads.summary.cancellationRate}%` : '—'}
+                                value={bookingPerf?.summary?.cancellationRate !== undefined ? `${bookingPerf.summary.cancellationRate}%` : '—'}
                                 subtitle="% of bookings cancelled"
                                 icon={Activity}
                                 color="purple"
                             />
                             <StatCard
                                 title="Show Rate"
-                                value={leads?.summary?.cancellationRate !== undefined
-                                    ? `${100 - leads.summary.cancellationRate}%`
+                                value={bookingPerf?.summary?.showRate !== undefined
+                                    ? `${bookingPerf.summary.showRate}%`
                                     : '—'}
                                 subtitle="Bookings that were kept"
                                 icon={CalendarCheck}
                                 color="primary"
-                                trend={leads?.summary?.cancellationRate !== undefined
-                                    ? 100 - leads.summary.cancellationRate
-                                    : undefined}
+                                trend={bookingPerf?.summary?.showRate}
                             />
                         </div>
 
                         <div className="dashboard-grid dashboard-grid-1">
                             <BookingPerformancePanel
-                                data={leads?.summary ? {
-                                    confirmedAppointments: leads.summary.confirmedAppointments,
-                                    cancelledAppointments: leads.summary.cancelledAppointments,
-                                    cancellationRate: leads.summary.cancellationRate,
+                                data={bookingPerf?.summary ? {
+                                    confirmedAppointments: bookingPerf.summary.confirmedAppointments,
+                                    cancelledAppointments: bookingPerf.summary.cancelledAppointments,
+                                    cancellationRate: bookingPerf.summary.cancellationRate,
                                 } : null}
                             />
                         </div>

@@ -37,7 +37,7 @@ const CommunicationPanel = ({ data }) => {
         {
             icon: Clock,
             iconClass: 'comm-icon-orange',
-            value: formatMinutes(data.avgFirstResponseMinutes),
+            value: data.avgFirstResponseMinutes ? formatMinutes(data.avgFirstResponseMinutes) : '—',
             label: 'Avg First Response',
             urgent: data.avgFirstResponseMinutes > 30,
         },
@@ -90,7 +90,7 @@ const CommunicationPanel = ({ data }) => {
 
             {data.responseTimeTrend && data.responseTimeTrend.length > 1 && (
                 <div className="comm-trend-section">
-                    <p className="comm-trend-title">Response Time Trend (minutes)</p>
+                    <p className="comm-trend-title">Daily Message Volume (CRM Leads)</p>
                     <ResponsiveContainer width="100%" height={130}>
                         <LineChart
                             data={data.responseTimeTrend}
@@ -114,10 +114,12 @@ const CommunicationPanel = ({ data }) => {
                             <Tooltip
                                 content={({ active, payload, label }) => {
                                     if (active && payload && payload.length) {
+                                        const d = payload[0].payload;
                                         return (
                                             <div className="chart-tooltip">
                                                 <p className="tooltip-label">{label}</p>
-                                                <p className="tooltip-value">{payload[0].value} min avg response</p>
+                                                <p className="tooltip-value">{d.messages} messages</p>
+                                                <p className="tooltip-subvalue">{d.activeLeads} active leads</p>
                                             </div>
                                         );
                                     }
@@ -126,11 +128,11 @@ const CommunicationPanel = ({ data }) => {
                             />
                             <Line
                                 type="monotone"
-                                dataKey="avgMinutes"
+                                dataKey="messages"
                                 stroke={lineColor}
                                 strokeWidth={2}
-                                dot={false}
-                                activeDot={{ r: 4 }}
+                                dot={{ r: 3 }}
+                                activeDot={{ r: 5 }}
                             />
                         </LineChart>
                     </ResponsiveContainer>

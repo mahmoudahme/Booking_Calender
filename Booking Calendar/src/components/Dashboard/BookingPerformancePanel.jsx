@@ -16,7 +16,7 @@ const BookingPerformancePanel = ({ data }) => {
         );
     }
 
-    const cancelRate  = data.cancellationRate;
+    const cancelRate  = data.cancellationRate ?? 0;
     const confirmRate = 100 - cancelRate;
     const isHighCancel = cancelRate > 20;
 
@@ -35,7 +35,7 @@ const BookingPerformancePanel = ({ data }) => {
                     </div>
                     <div>
                         <div className="booking-perf-value">
-                            {data.confirmedAppointments.toLocaleString()}
+                            {(data.confirmedAppointments ?? 0).toLocaleString()}
                         </div>
                         <div className="booking-perf-label">Confirmed Appointments</div>
                     </div>
@@ -47,7 +47,7 @@ const BookingPerformancePanel = ({ data }) => {
                     </div>
                     <div>
                         <div className="booking-perf-value">
-                            {data.cancelledAppointments.toLocaleString()}
+                            {(data.cancelledAppointments ?? 0).toLocaleString()}
                         </div>
                         <div className="booking-perf-label">Cancelled</div>
                     </div>

@@ -25,9 +25,8 @@ const EfficiencyChart = ({ data }) => {
 
     const chartData = data.map(b => ({
         name: b.branchName.replace(' Branch', '').replace(' - Downtown', ''),
-        'Wait Time (min)': b.averageWaitTime,
-        'No-Show Rate (%)': b.noShowRate,
-        satisfaction: b.patientSatisfaction,
+        'Unconfirmed (%)': b.noShowRate ?? 0,
+        'Appointments': b.totalAppointments ?? 0,
     }));
 
     return (
@@ -36,7 +35,7 @@ const EfficiencyChart = ({ data }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
         >
-            <h4 className="chart-title"><Clock size={18} /> Branch Efficiency & QA</h4>
+            <h4 className="chart-title"><Clock size={18} /> Branch Appointment Volume</h4>
             <div className="chart-container">
                 <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
@@ -50,9 +49,8 @@ const EfficiencyChart = ({ data }) => {
                                     return (
                                         <div className="chart-tooltip">
                                             <p className="tooltip-label">{label}</p>
-                                            <p className="tooltip-value">Avg Wait: {d['Wait Time (min)']} min</p>
-                                            <p className="tooltip-subvalue">No-Show: {d['No-Show Rate (%)']}%</p>
-                                            <p className="tooltip-subvalue">Satisfaction: {d.satisfaction}%</p>
+                                            <p className="tooltip-value">Appointments: {d['Appointments']}</p>
+                                            <p className="tooltip-subvalue">Unconfirmed: {d['Unconfirmed (%)']}%</p>
                                         </div>
                                     );
                                 }
@@ -60,8 +58,8 @@ const EfficiencyChart = ({ data }) => {
                             }}
                         />
                         <Legend />
-                        <Bar dataKey="Wait Time (min)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="No-Show Rate (%)" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Appointments" fill="#1fa391" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Unconfirmed (%)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -71,10 +69,10 @@ const EfficiencyChart = ({ data }) => {
                         <span className="efficiency-branch">{b.branchName.replace(' Branch', '').replace(' - Downtown', '')}</span>
                         <div className="efficiency-metrics">
                             <span className="efficiency-metric">
-                                <Clock size={12} /> {b.averageWaitTime}m wait
+                                <Clock size={12} /> {b.totalAppointments ?? 0} appts
                             </span>
-                            <span className="efficiency-metric" style={{ color: b.noShowRate > 10 ? '#ef4444' : '#0da35d' }}>
-                                <AlertCircle size={12} /> {b.noShowRate}% no-show
+                            <span className="efficiency-metric" style={{ color: (b.noShowRate ?? 0) > 20 ? '#ef4444' : '#0da35d' }}>
+                                <AlertCircle size={12} /> {b.noShowRate ?? 0}% unconfirmed
                             </span>
                         </div>
                     </div>

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { format, startOfDay, startOfWeek, startOfMonth, endOfDay, endOfWeek, endOfMonth, isWithinInterval, parseISO, eachDayOfInterval, subDays } from 'date-fns';
 import { DASHBOARD_PERIODS } from '../constants';
 
-export const useDashboardStats = (appointments, doctors, period = DASHBOARD_PERIODS.WEEK, selectedDate = new Date()) => {
+export const useDashboardStats = (appointments, doctors, period = DASHBOARD_PERIODS.WEEK, selectedDate = new Date(), customRange = null) => {
     const stats = useMemo(() => {
         if (!appointments || appointments.length === 0) {
             return {
@@ -44,6 +44,15 @@ export const useDashboardStats = (appointments, doctors, period = DASHBOARD_PERI
             case DASHBOARD_PERIODS.MONTH:
                 periodStart = monthStart;
                 periodEnd = monthEnd;
+                break;
+            case DASHBOARD_PERIODS.CUSTOM:
+                if (customRange?.start && customRange?.end) {
+                    periodStart = startOfDay(parseISO(customRange.start));
+                    periodEnd = endOfDay(parseISO(customRange.end));
+                } else {
+                    periodStart = weekStart;
+                    periodEnd = weekEnd;
+                }
                 break;
             case DASHBOARD_PERIODS.WEEK:
             default:
@@ -185,7 +194,7 @@ export const useDashboardStats = (appointments, doctors, period = DASHBOARD_PERI
                 frequentVisitors
             }
         };
-    }, [appointments, doctors, period, selectedDate]);
+    }, [appointments, doctors, period, selectedDate, customRange?.start, customRange?.end]);
 
     return stats;
 };

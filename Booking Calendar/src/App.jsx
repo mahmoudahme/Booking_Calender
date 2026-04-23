@@ -387,6 +387,7 @@ function App() {
                 viewMode={viewMode}
                 setViewMode={handleSetViewMode}
                 selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
                 onNavigate={handleNavigate}
                 onRefresh={refetch}
                 isRefreshing={isRefreshing}

@@ -12,6 +12,8 @@ const DoctorOccupancy = ({ data }) => {
         return isDarkMode ? '#9ca3af' : '#4b5563';
     };
 
+    if (!data) return null;
+
     const sortedData = [...data].sort((a, b) => b.occupancyRate - a.occupancyRate).slice(0, 6);
 
     if (sortedData.length === 0) {

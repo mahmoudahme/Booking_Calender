@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const DASHBOARD_API_BASE = 'http://72.62.16.223:3000/api/v1/dashboard';
+const DASHBOARD_API_BASE = 'http://localhost:3000/api/v1/dashboard';
 
-// ─── TEMP: Set to false to use real API ───────────────────────────────────────
-const USE_DUMMY_DATA = true;
+// ─── Set to false to use real API ─────────────────────────────────────────────
+const USE_DUMMY_DATA = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const generateDailyTrend = (days, multiplier) => {
@@ -256,7 +256,7 @@ const buildDummyData = (period) => {
     };
 };
 
-export const useDashboardData = (period = 'monthly') => {
+export const useDashboardData = (period = 'monthly', customRange = null) => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -265,20 +265,30 @@ export const useDashboardData = (period = 'monthly') => {
         today: 'daily',
         week: 'weekly',
         month: 'monthly',
+        custom: 'custom',
     };
 
     const fetchDashboardData = useCallback(async () => {
+        // Wait until both dates are filled before fetching for custom period
+        if (period === 'custom' && (!customRange?.start || !customRange?.end)) {
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         setError(null);
         try {
             if (USE_DUMMY_DATA) {
                 await new Promise(resolve => setTimeout(resolve, 300));
-                setData(buildDummyData(period));
+                setData(buildDummyData(period === 'custom' ? 'month' : period));
             } else {
                 const apiPeriod = periodMap[period] || 'monthly';
-                const response = await axios.get(`${DASHBOARD_API_BASE}/full`, {
-                    params: { period: apiPeriod },
-                });
+                const params = { period: apiPeriod };
+                if (period === 'custom' && customRange?.start && customRange?.end) {
+                    params.startDate = customRange.start;
+                    params.endDate = customRange.end;
+                }
+                const response = await axios.get(`${DASHBOARD_API_BASE}/full`, { params });
                 const responseData = response.data?.data || response.data;
                 setData(responseData);
             }
@@ -288,7 +298,7 @@ export const useDashboardData = (period = 'monthly') => {
         } finally {
             setLoading(false);
         }
-    }, [period]);
+    }, [period, customRange?.start, customRange?.end]);
 
     useEffect(() => {
         fetchDashboardData();

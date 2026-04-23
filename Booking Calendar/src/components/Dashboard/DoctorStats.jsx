@@ -10,6 +10,8 @@ const DoctorStats = ({ data }) => {
     const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
     const textColor = isDarkMode ? '#e4e6eb' : '#1a1a1b';
 
+    if (!data) return null;
+
     const chartData = data.slice(0, 6).map(doctor => ({
         name: doctor.name.length > 12 ? doctor.name.substring(0, 12) + '...' : doctor.name,
         fullName: doctor.name,

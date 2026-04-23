@@ -7,6 +7,8 @@ import { useTheme } from '../../hooks/useTheme';
 const StatusDistribution = ({ data }) => {
     const { isDarkMode } = useTheme();
 
+    if (!data) return null;
+
     const chartData = Object.entries(data).map(([status, count]) => ({
         name: STATUS_LABELS[status] || status,
         value: count,

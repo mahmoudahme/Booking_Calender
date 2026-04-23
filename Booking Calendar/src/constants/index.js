@@ -25,7 +25,8 @@ export const VIEW_MODES = {
 export const DASHBOARD_PERIODS = {
     TODAY: 'today',
     WEEK: 'week',
-    MONTH: 'month'
+    MONTH: 'month',
+    CUSTOM: 'custom',
 };
 
 // Status Colors for Charts (matching appointment colors)

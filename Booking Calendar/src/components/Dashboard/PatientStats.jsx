@@ -9,6 +9,9 @@ const PatientStats = ({ data }) => {
     const primaryColor = isDarkMode ? '#20c9a6' : '#1fa391';
     const blueColor = isDarkMode ? '#5ba3ff' : '#1877f2';
     const greenColor = isDarkMode ? '#4ade80' : '#0da35d';
+
+    if (!data) return null;
+
     return (
         <motion.div
             className="stat-card chart-card"

@@ -20,6 +20,14 @@ import { UomUom } from '../entities/entities/UomUom.entity';
 import { StockLocation } from '../entities/entities/StockLocation.entity';
 import { StockQuant } from '../entities/entities/StockQuant.entity';
 import { ResCountry } from '../entities/entities/ResCountry.entity';
+import { CrmLead } from '../entities/entities/CrmLead.entity';
+import { CrmStage } from '../entities/entities/CrmStage.entity';
+import { UtmSource } from '../entities/entities/UtmSource.entity';
+import { DiscussChannel } from '../entities/entities/DiscussChannel.entity';
+import { DiscussChannelMember } from '../entities/entities/DiscussChannelMember.entity';
+import { MailMessage } from '../entities/entities/MailMessage.entity';
+import { CampaginsSources } from '../entities/entities/CampaginsSources.entity';
+import { ClinicBranch } from '../entities/entities/ClinicBranch.entity';
 
 @Module({
     imports: [
@@ -28,6 +36,7 @@ import { ResCountry } from '../entities/entities/ResCountry.entity';
             AccountMoveLine,
             AccountPayment,
             ResCompany,
+            ClinicBranch,
             ProductProduct,
             ProductTemplate,
             ProductCategory,
@@ -42,6 +51,13 @@ import { ResCountry } from '../entities/entities/ResCountry.entity';
             StockLocation,
             StockQuant,
             ResCountry,
+            CrmLead,
+            CrmStage,
+            UtmSource,
+            DiscussChannel,
+            DiscussChannelMember,
+            MailMessage,
+            CampaginsSources,
         ]),
     ],
     controllers: [DashboardController],

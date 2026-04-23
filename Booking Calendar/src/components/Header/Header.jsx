@@ -8,6 +8,7 @@ const Header = ({
     viewMode,
     setViewMode,
     selectedDate,
+    setSelectedDate,
     onNavigate,
     onRefresh,
     isRefreshing,
@@ -28,6 +29,7 @@ const Header = ({
                     viewMode={viewMode}
                     setViewMode={setViewMode}
                     selectedDate={selectedDate}
+                    setSelectedDate={setSelectedDate}
                     onNavigate={onNavigate}
                     onRefresh={onRefresh}
                     isRefreshing={isRefreshing}

@@ -5,7 +5,8 @@
       "Bash(npm run build:*)",
       "Bash(xargs:*)",
       "Bash(npx vite build)",
-      "Bash(PGPASSWORD=odoo psql -h 72.62.16.223 -p 5432 -U odoo -d Hosn -c \"SELECT DISTINCT id_type FROM patient_model WHERE id_type IS NOT NULL LIMIT 20;\")"
+      "Bash(PGPASSWORD=odoo psql -h 72.62.16.223 -p 5432 -U odoo -d Hosn -c \"SELECT DISTINCT id_type FROM patient_model WHERE id_type IS NOT NULL LIMIT 20;\")",
+      "Bash(psql -h 46.225.164.73 -p 5432 -U odoo19 -d Hosn -c ' *)"
     ]
   }
 }

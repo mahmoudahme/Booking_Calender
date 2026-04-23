@@ -1,6 +1,6 @@
 import React from 'react';
 import { format, startOfWeek, addDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, BarChart2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BarChart2, Calendar } from 'lucide-react';
 import { VIEW_MODES } from '../../constants';
 
 const NavigationToolbar = ({
@@ -11,29 +11,20 @@ const NavigationToolbar = ({
     onRefresh,
     isRefreshing
 }) => {
+    const isDashboard = viewMode === VIEW_MODES.DASHBOARD;
+
     return (
         <div className="nav-toolbar">
-            {/* Date Navigation Controls - Hidden in Dashboard view */}
-            {viewMode !== VIEW_MODES.DASHBOARD && (
+            {/* Date nav controls — hidden in Stats view */}
+            {!isDashboard && (
                 <div className="date-nav-controls">
-                    <button
-                        onClick={() => onNavigate('prev')}
-                        className="nav-btn-icon"
-                    >
+                    <button onClick={() => onNavigate('prev')} className="nav-btn-icon">
                         <ChevronLeft size={20} />
                     </button>
-
-                    <button
-                        onClick={() => onNavigate('today')}
-                        className="nav-btn-today"
-                    >
+                    <button onClick={() => onNavigate('today')} className="nav-btn-today">
                         {viewMode === VIEW_MODES.DAY ? 'Today' : 'This Week'}
                     </button>
-
-                    <button
-                        onClick={() => onNavigate('next')}
-                        className="nav-btn-icon"
-                    >
+                    <button onClick={() => onNavigate('next')} className="nav-btn-icon">
                         <ChevronRight size={20} />
                     </button>
                 </div>
@@ -41,28 +32,46 @@ const NavigationToolbar = ({
 
             {/* View Toggle */}
             <div className="view-toggle-group">
-                <button
-                    onClick={() => setViewMode(VIEW_MODES.DAY)}
-                    className={`view-toggle-btn ${viewMode === VIEW_MODES.DAY ? 'active' : ''}`}
-                >
-                    Day
-                </button>
-                <button
-                    onClick={() => setViewMode(VIEW_MODES.WEEK)}
-                    className={`view-toggle-btn ${viewMode === VIEW_MODES.WEEK ? 'active' : ''}`}
-                >
-                    Week
-                </button>
+                {/* Day & Week — visible only when NOT in Stats */}
+                {!isDashboard && (
+                    <>
+                        <button
+                            onClick={() => setViewMode(VIEW_MODES.DAY)}
+                            className={`view-toggle-btn ${viewMode === VIEW_MODES.DAY ? 'active' : ''}`}
+                        >
+                            Day
+                        </button>
+                        <button
+                            onClick={() => setViewMode(VIEW_MODES.WEEK)}
+                            className={`view-toggle-btn ${viewMode === VIEW_MODES.WEEK ? 'active' : ''}`}
+                        >
+                            Week
+                        </button>
+                    </>
+                )}
+
+                {/* Stats button — always visible */}
                 <button
                     onClick={() => setViewMode(VIEW_MODES.DASHBOARD)}
-                    className={`view-toggle-btn ${viewMode === VIEW_MODES.DASHBOARD ? 'active' : ''}`}
+                    className={`view-toggle-btn ${isDashboard ? 'active' : ''}`}
                 >
                     <BarChart2 size={16} style={{ marginRight: 4 }} />
                     Stats
                 </button>
+
+                {/* Calendar button — visible only in Stats mode */}
+                {isDashboard && (
+                    <button
+                        className="view-toggle-btn stats-calendar-btn"
+                        onClick={() => setViewMode(VIEW_MODES.DAY)}
+                    >
+                        <Calendar size={16} style={{ marginRight: 4 }} />
+                        Calendar
+                    </button>
+                )}
             </div>
 
-            {viewMode !== VIEW_MODES.DASHBOARD && (
+            {!isDashboard && (
                 <button
                     onClick={onRefresh}
                     disabled={isRefreshing}
@@ -81,7 +90,8 @@ const NavigationToolbar = ({
             )}
             {viewMode === VIEW_MODES.WEEK && (
                 <h2 className="current-date-display">
-                    {format(startOfWeek(selectedDate, { weekStartsOn: 0 }), 'MMM d')} - {format(addDays(startOfWeek(selectedDate, { weekStartsOn: 0 }), 6), 'MMM d, yyyy')}
+                    {format(startOfWeek(selectedDate, { weekStartsOn: 0 }), 'MMM d')} –{' '}
+                    {format(addDays(startOfWeek(selectedDate, { weekStartsOn: 0 }), 6), 'MMM d, yyyy')}
                 </h2>
             )}
         </div>
