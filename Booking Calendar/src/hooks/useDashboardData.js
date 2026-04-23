@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const DASHBOARD_API_BASE = 'http://localhost:3000/api/v1/dashboard';
+const DASHBOARD_API_BASE = 'http://46.225.164.73:3000/api/v1/dashboard';
 
 // ─── Set to false to use real API ─────────────────────────────────────────────
 const USE_DUMMY_DATA = false;
