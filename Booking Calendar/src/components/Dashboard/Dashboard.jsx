@@ -102,7 +102,7 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                 />
                 <StatCard
                     title="Appointments"
-                    value={stats.appointmentStats.total || (performance?.statusOverview?.totalProcedures ?? '—')}
+                    value={appointmentsDummy?.appointmentStats?.total || stats.appointmentStats.total || (performance?.statusOverview?.totalProcedures ?? '—')}
                     subtitle={periodLabel}
                     icon={Calendar}
                     color="primary"
