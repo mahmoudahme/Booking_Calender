@@ -19,7 +19,7 @@ import './index.css';
 function App() {
     // State Management
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [viewMode, setViewMode] = useState(VIEW_MODES.DAY);
+    const [viewMode, setViewMode] = useState(VIEW_MODES.DASHBOARD);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState(null);
