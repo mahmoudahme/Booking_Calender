@@ -1,6 +1,6 @@
 import React from 'react';
 import { format, startOfWeek, addDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, BarChart2, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BarChart2 } from 'lucide-react';
 import { VIEW_MODES } from '../../constants';
 
 const NavigationToolbar = ({
@@ -59,16 +59,6 @@ const NavigationToolbar = ({
                     Stats
                 </button>
 
-                {/* Calendar button — visible only in Stats mode */}
-                {isDashboard && (
-                    <button
-                        className="view-toggle-btn stats-calendar-btn"
-                        onClick={() => setViewMode(VIEW_MODES.DAY)}
-                    >
-                        <Calendar size={16} style={{ marginRight: 4 }} />
-                        Calendar
-                    </button>
-                )}
             </div>
 
             {!isDashboard && (
