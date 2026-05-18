@@ -2,7 +2,6 @@ import React from 'react';
 import { User, Moon, Sun, Calendar as CalendarIcon, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import NavigationToolbar from '../UI/NavigationToolbar';
-import SearchBar from './SearchBar';
 
 const Header = ({
     viewMode,
@@ -37,14 +36,6 @@ const Header = ({
             </div>
 
             <div className="header-right">
-                <SearchBar
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    searchResults={searchResults}
-                    doctors={doctors}
-                    onResultClick={onSearchResultClick}
-                />
-
                 <button
                     className="toggle-sidebar-btn"
                     onClick={toggleTheme}
