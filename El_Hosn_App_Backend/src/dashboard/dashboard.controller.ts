@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 
-@Controller('api/v1/dashboard')
+@Controller('api/v1/dashboard') 
 export class DashboardController {
     constructor(private readonly dashboardService: DashboardService) {}
 
@@ -33,8 +33,12 @@ export class DashboardController {
     }
 
     @Get('performance')
-    async getPerformanceTracking() {
-        return this.dashboardService.getPerformanceTracking();
+    async getPerformanceTracking(
+        @Query('period') period: string = 'daily',
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string,
+    ) {
+        return this.dashboardService.getPerformanceTracking(period, startDate, endDate);
     }
 
     @Get('leads')

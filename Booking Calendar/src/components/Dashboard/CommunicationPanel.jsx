@@ -1,24 +1,16 @@
 import React from 'react';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer,
+    ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+    Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { motion } from 'framer-motion';
-import { MessageCircle, Clock, AlertCircle } from 'lucide-react';
+import { MessageCircle, AlertCircle, Smartphone } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
-
-const formatMinutes = (mins) => {
-    if (mins < 60) return `${mins}m`;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-};
 
 const CommunicationPanel = ({ data }) => {
     const { isDarkMode } = useTheme();
     const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
     const textColor = isDarkMode ? '#e4e6eb' : '#1a1a1b';
-    const lineColor = isDarkMode ? '#fb923c' : '#ea580c';
 
     if (!data) {
         return (
@@ -35,13 +27,6 @@ const CommunicationPanel = ({ data }) => {
 
     const metrics = [
         {
-            icon: Clock,
-            iconClass: 'comm-icon-orange',
-            value: data.avgFirstResponseMinutes ? formatMinutes(data.avgFirstResponseMinutes) : '—',
-            label: 'Avg First Response',
-            urgent: data.avgFirstResponseMinutes > 30,
-        },
-        {
             icon: AlertCircle,
             iconClass: 'comm-icon-pink',
             value: data.unansweredThreads,
@@ -52,8 +37,22 @@ const CommunicationPanel = ({ data }) => {
         {
             icon: MessageCircle,
             iconClass: 'comm-icon-blue',
-            value: data.activeChatVolume,
-            label: 'Active Chats',
+            value: data.leadMessages,
+            label: 'Lead Messages',
+            urgent: false,
+        },
+        {
+            icon: MessageCircle,
+            iconClass: 'comm-icon-orange',
+            value: data.appointmentMessages,
+            label: 'Appt. Messages',
+            urgent: false,
+        },
+        {
+            icon: Smartphone,
+            iconClass: 'comm-icon-pink',
+            value: data.smsSent != null ? `${data.smsSent} (${data.smsSuccessRate}%)` : '—',
+            label: 'SMS Sent',
             urgent: false,
         },
     ];
@@ -88,29 +87,14 @@ const CommunicationPanel = ({ data }) => {
                 })}
             </div>
 
-            {data.responseTimeTrend && data.responseTimeTrend.length > 1 && (
+            {data.dailyTrend && data.dailyTrend.length > 0 && (
                 <div className="comm-trend-section">
-                    <p className="comm-trend-title">Daily Message Volume (CRM Leads)</p>
-                    <ResponsiveContainer width="100%" height={130}>
-                        <LineChart
-                            data={data.responseTimeTrend}
-                            margin={{ top: 4, right: 10, left: 0, bottom: 4 }}
-                        >
+                    <p className="comm-trend-title">Daily Message Volume</p>
+                    <ResponsiveContainer width="100%" height={160}>
+                        <ComposedChart data={data.dailyTrend} margin={{ top: 4, right: 10, left: 0, bottom: 4 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
-                            <XAxis
-                                dataKey="date"
-                                stroke={textColor}
-                                fontSize={10}
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <YAxis
-                                stroke={textColor}
-                                fontSize={10}
-                                tickLine={false}
-                                axisLine={false}
-                                width={28}
-                            />
+                            <XAxis dataKey="date" stroke={textColor} fontSize={10} tickLine={false} axisLine={false} />
+                            <YAxis stroke={textColor} fontSize={10} tickLine={false} axisLine={false} width={28} />
                             <Tooltip
                                 content={({ active, payload, label }) => {
                                     if (active && payload && payload.length) {
@@ -118,23 +102,20 @@ const CommunicationPanel = ({ data }) => {
                                         return (
                                             <div className="chart-tooltip">
                                                 <p className="tooltip-label">{label}</p>
-                                                <p className="tooltip-value">{d.messages} messages</p>
-                                                <p className="tooltip-subvalue">{d.activeLeads} active leads</p>
+                                                <p className="tooltip-value">Leads: {d.leadMessages}</p>
+                                                <p className="tooltip-subvalue">Appointments: {d.appointmentMessages}</p>
+                                                <p className="tooltip-subvalue">SMS: {d.smsSent}</p>
                                             </div>
                                         );
                                     }
                                     return null;
                                 }}
                             />
-                            <Line
-                                type="monotone"
-                                dataKey="messages"
-                                stroke={lineColor}
-                                strokeWidth={2}
-                                dot={{ r: 3 }}
-                                activeDot={{ r: 5 }}
-                            />
-                        </LineChart>
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                            <Bar dataKey="leadMessages"        name="Leads"        fill="#1877f2" radius={[2,2,0,0]} />
+                            <Bar dataKey="appointmentMessages" name="Appointments" fill="#1fa391" radius={[2,2,0,0]} />
+                            <Line dataKey="smsSent" name="SMS" stroke="#ea580c" strokeWidth={2} dot={{ r: 3 }} />
+                        </ComposedChart>
                     </ResponsiveContainer>
                 </div>
             )}

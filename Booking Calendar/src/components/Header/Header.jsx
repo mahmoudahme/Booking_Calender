@@ -1,39 +1,11 @@
 import React from 'react';
-import { User, Moon, Sun, Calendar as CalendarIcon, X } from 'lucide-react';
+import { User, Moon, Sun } from 'lucide-react';
 import { motion } from 'framer-motion';
-import NavigationToolbar from '../UI/NavigationToolbar';
 
-const Header = ({
-    viewMode,
-    setViewMode,
-    selectedDate,
-    setSelectedDate,
-    onNavigate,
-    onRefresh,
-    isRefreshing,
-    searchTerm,
-    setSearchTerm,
-    searchResults,
-    doctors,
-    onSearchResultClick,
-    isDarkMode,
-    toggleTheme,
-    isSidebarOpen,
-    toggleSidebar
-}) => {
+const Header = ({ isDarkMode, toggleTheme }) => {
     return (
         <header>
-            <div className="header-left">
-                <NavigationToolbar
-                    viewMode={viewMode}
-                    setViewMode={setViewMode}
-                    selectedDate={selectedDate}
-                    setSelectedDate={setSelectedDate}
-                    onNavigate={onNavigate}
-                    onRefresh={onRefresh}
-                    isRefreshing={isRefreshing}
-                />
-            </div>
+            <div className="header-left" />
 
             <div className="header-right">
                 <button
@@ -55,10 +27,6 @@ const Header = ({
                     <User size={20} color="#1fa391" />
                     <span className="user-name">Administrator</span>
                 </div>
-
-                <button className="toggle-sidebar-btn" onClick={toggleSidebar}>
-                    {isSidebarOpen ? <X size={20} /> : <CalendarIcon size={20} />}
-                </button>
             </div>
         </header>
     );

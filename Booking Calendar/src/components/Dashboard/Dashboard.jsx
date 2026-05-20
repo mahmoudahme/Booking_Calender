@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Calendar, Users, Stethoscope, Clock, Activity,
@@ -99,13 +99,29 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
         : 'This Month';
 
     const financial       = dashboardData?.financial;
-    const services        = dashboardData?.services;
+    const services        = dashboardData?.services; 
     const patients        = dashboardData?.patients;
     const performance     = dashboardData?.performance;
     const apptData        = dashboardData?.appointments;
     const leads           = dashboardData?.leads;
     const communication   = dashboardData?.communication;
     const bookingPerf     = dashboardData?.bookingPerformance;
+
+    useEffect(() => {
+        const tabData = {
+            financial:            financial,
+            patients:             patients,
+            appointments:         apptData,
+            performance:          performance,
+            services:             services,
+            'lead-analytics':     leads,
+            communication:        communication,
+            'booking-performance': bookingPerf,
+        };
+        console.group(`[Dashboard] Tab: ${activeTab} | Period: ${period}${period === DASHBOARD_PERIODS.CUSTOM ? ` (${customRange.start} → ${customRange.end})` : ''}`);
+        console.log('data:', tabData[activeTab]);
+        console.groupEnd();
+    }, [activeTab, financial, patients, apptData, performance, services, leads, communication, bookingPerf]);
 
     const isCustom = period === DASHBOARD_PERIODS.CUSTOM;
     const todayStr = new Date().toLocaleDateString('en-US', {
@@ -211,9 +227,8 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                 <div className="db-kpi-row">
                     <StatCard
                         title="Total Revenue"
-                        value={financial ? (financial.summary.totalRevenue >= 1000000
-                            ? `${(financial.summary.totalRevenue / 1000000).toFixed(2)}M`
-                            : `${(financial.summary.totalRevenue / 1000).toFixed(0)}K`)
+                        value={financial
+                            ? financial.summary.totalRevenue.toLocaleString('en-US', { maximumFractionDigits: 0 })
                             : '—'}
                         subtitle={`SAR — ${periodLabel}`}
                         icon={DollarSign}
@@ -354,7 +369,7 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                             <div className="dashboard-grid dashboard-grid-4">
                                 <StatCard title="Total Procedures"
                                     value={performance?.statusOverview?.totalProcedures ?? '—'}
-                                    subtitle="Today's procedures"
+                                    subtitle={`${periodLabel} — from service records`}
                                     icon={Stethoscope} color="primary" />
                                 <StatCard title="Completed"
                                     value={performance?.statusOverview?.completed ?? '—'}
@@ -401,10 +416,10 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                                     value={leads?.summary?.totalLeads ?? '—'}
                                     subtitle={periodLabel} icon={Target} color="blue" />
                                 <StatCard title="New Leads"
-                                    value={leads?.byStatus?.[0]?.value ?? '—'}
+                                    value={leads?.summary?.newLeads ?? '—'}
                                     subtitle="Awaiting first contact" icon={Target} color="primary" />
                                 <StatCard title="In Progress"
-                                    value={leads?.byStatus?.[1]?.value ?? '—'}
+                                    value={leads?.summary?.inProgressLeads ?? '—'}
                                     subtitle="Being handled" icon={Activity} color="orange" />
                                 <StatCard title="Conversion Rate"
                                     value={leads?.summary?.conversionRate !== undefined ? `${leads.summary.conversionRate}%` : '—'}
@@ -425,26 +440,32 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                     {activeTab === 'communication' && (
                         <motion.div key="communication" className="db-section" variants={contentVariants} initial="hidden" animate="visible" exit="exit">
                             <div className="dashboard-grid dashboard-grid-4">
-                                <StatCard title="Avg First Response"
-                                    value={communication?.summary?.avgFirstResponseMinutes != null
-                                        ? `${communication.summary.avgFirstResponseMinutes}m` : '—'}
-                                    subtitle="Time to first reply" icon={Clock} color="orange" />
+                                <StatCard title="SMS Sent"
+                                    value={communication?.summary?.smsSent ?? '—'}
+                                    subtitle={communication?.summary?.smsSent != null
+                                        ? `${communication.summary.smsSuccessRate}% delivered`
+                                        : 'Appointment reminders'}
+                                    icon={MessageCircle} color="orange" />
                                 <StatCard title="Unanswered"
                                     value={communication?.summary?.unansweredThreads ?? '—'}
-                                    subtitle="Need a reply" icon={MessageCircle} color="purple" />
-                                <StatCard title="Active Chats"
-                                    value={communication?.summary?.activeChatVolume ?? '—'}
-                                    subtitle="Open conversations" icon={MessageCircle} color="primary" />
-                                <StatCard title="Lead Messages"
-                                    value={communication?.summary?.totalLeadMessages ?? '—'}
-                                    subtitle="On CRM leads" icon={Activity} color="blue" />
+                                    subtitle="Channels with unread messages" icon={MessageCircle} color="purple" />
+                                <StatCard title="Total Channels"
+                                    value={communication?.summary?.totalChannels ?? '—'}
+                                    subtitle="Active conversations" icon={MessageCircle} color="primary" />
+                                <StatCard title="Total Messages"
+                                    value={communication?.summary?.totalMessages ?? '—'}
+                                    subtitle={`${periodLabel} across all records`}
+                                    icon={Activity} color="blue" />
                             </div>
                             <div className="dashboard-grid dashboard-grid-1">
-                                <CommunicationPanel data={communication?.summary ? {
-                                    avgFirstResponseMinutes: communication.summary.avgFirstResponseMinutes,
-                                    unansweredThreads: communication.summary.unansweredThreads,
-                                    activeChatVolume: communication.summary.activeChatVolume,
-                                    responseTimeTrend: communication.responseTimeTrend,
+                                <CommunicationPanel data={communication ? {
+                                    unansweredThreads:    communication.summary.unansweredThreads,
+                                    totalChannels:        communication.summary.totalChannels,
+                                    smsSent:              communication.summary.smsSent,
+                                    smsSuccessRate:       communication.summary.smsSuccessRate,
+                                    leadMessages:         communication.summary.leadMessages,
+                                    appointmentMessages:  communication.summary.appointmentMessages,
+                                    dailyTrend:           communication.dailyTrend,
                                 } : null} />
                             </div>
                         </motion.div>

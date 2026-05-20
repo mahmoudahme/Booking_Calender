@@ -27,10 +27,10 @@ const DoctorKPIChart = ({ data }) => {
         name: d.doctorName.replace('Dr. ', ''),
         fullName: d.doctorName,
         completion: d.completionRate,
-        total: d.totalAppointments,
-        completed: d.completedAppointments,
+        total: d.totalProcedures,
+        completed: d.completedProcedures,
         revenue: d.revenue,
-        rating: d.patientRating,
+        avgTime: d.avgProcedureTime,
     }));
 
     const getBarColor = (rate) => {
@@ -61,9 +61,9 @@ const DoctorKPIChart = ({ data }) => {
                                         <div className="chart-tooltip">
                                             <p className="tooltip-label">{d.fullName}</p>
                                             <p className="tooltip-value">Completion: {d.completion}%</p>
-                                            <p className="tooltip-subvalue">Appointments: {d.completed}/{d.total}</p>
-                                            <p className="tooltip-subvalue">Revenue: {d.revenue.toLocaleString()} SAR</p>
-                                            <p className="tooltip-subvalue">Rating: {d.rating}/5.0</p>
+                                            <p className="tooltip-subvalue">Procedures: {d.completed}/{d.total}</p>
+                                            {d.revenue != null && <p className="tooltip-subvalue">Revenue: {d.revenue.toLocaleString()} SAR</p>}
+                                            {d.avgTime != null && <p className="tooltip-subvalue">Avg Time: {d.avgTime} min</p>}
                                         </div>
                                     );
                                 }

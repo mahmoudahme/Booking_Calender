@@ -3,11 +3,10 @@ import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config'; 
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { getDatabaseConfig } from '../config/database.config';
-import { BookingCalendarModule } from './booking-calendar/booking-calendar.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
@@ -50,7 +49,6 @@ function getI18nPath(): string {
       ],
     }),
 
-    BookingCalendarModule,
     DashboardModule,
   ],
   providers: [

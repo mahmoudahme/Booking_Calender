@@ -28,6 +28,9 @@ import { DiscussChannelMember } from '../entities/entities/DiscussChannelMember.
 import { MailMessage } from '../entities/entities/MailMessage.entity';
 import { CampaginsSources } from '../entities/entities/CampaginsSources.entity';
 import { ClinicBranch } from '../entities/entities/ClinicBranch.entity';
+import { ServiceTable } from '../entities/entities/ServiceTable.entity';
+import { CrmLeadWebsiteOrderLine } from '../entities/entities/CrmLeadWebsiteOrderLine.entity';
+import { MoraSmsLog } from '../entities/entities/MoraSmsLog.entity';
 
 @Module({
     imports: [
@@ -58,6 +61,9 @@ import { ClinicBranch } from '../entities/entities/ClinicBranch.entity';
             DiscussChannelMember,
             MailMessage,
             CampaginsSources,
+            ServiceTable,
+            CrmLeadWebsiteOrderLine,
+            MoraSmsLog,
         ]),
     ],
     controllers: [DashboardController],

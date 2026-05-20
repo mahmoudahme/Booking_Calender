@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { AccountMove } from '../entities/entities/AccountMove.entity';
 import { AccountMoveLine } from '../entities/entities/AccountMoveLine.entity';
-import { AccountPayment } from '../entities/entities/AccountPayment.entity';
 import { ProductProduct } from '../entities/entities/ProductProduct.entity';
 import { ProductTemplate } from '../entities/entities/ProductTemplate.entity';
 import { OpdRegistrationModel } from '../entities/entities/OpdRegistrationModel.entity';
@@ -24,6 +23,9 @@ import { DiscussChannelMember } from '../entities/entities/DiscussChannelMember.
 import { MailMessage } from '../entities/entities/MailMessage.entity';
 import { CampaginsSources } from '../entities/entities/CampaginsSources.entity';
 import { ClinicBranch } from '../entities/entities/ClinicBranch.entity';
+import { ServiceTable } from '../entities/entities/ServiceTable.entity';
+import { CrmLeadWebsiteOrderLine } from '../entities/entities/CrmLeadWebsiteOrderLine.entity';
+import { MoraSmsLog } from '../entities/entities/MoraSmsLog.entity';
 
 // COALESCE helper: use appointment_date when set, else fall back to create_date
 const APPT_DATE = `COALESCE(app.appointment_date, app.create_date)`;
@@ -36,70 +38,59 @@ export class DashboardService {
         private readonly accountMoveRepo: Repository<AccountMove>,
         @InjectRepository(AccountMoveLine)
         private readonly accountMoveLineRepo: Repository<AccountMoveLine>,
-        @InjectRepository(AccountPayment)
-        private readonly accountPaymentRepo: Repository<AccountPayment>,
-        @InjectRepository(ProductProduct)
-        private readonly productRepo: Repository<ProductProduct>,
-        @InjectRepository(ProductTemplate)
-        private readonly productTemplateRepo: Repository<ProductTemplate>,
         @InjectRepository(OpdRegistrationModel)
         private readonly appointmentRepo: Repository<OpdRegistrationModel>,
         @InjectRepository(PatientModel)
         private readonly patientRepo: Repository<PatientModel>,
         @InjectRepository(StockMove)
         private readonly stockMoveRepo: Repository<StockMove>,
-        @InjectRepository(UomUom)
-        private readonly uomRepo: Repository<UomUom>,
-        @InjectRepository(StockLocation)
-        private readonly locationRepo: Repository<StockLocation>,
         @InjectRepository(StockQuant)
         private readonly stockQuantRepo: Repository<StockQuant>,
-        @InjectRepository(ResCountry)
-        private readonly countryRepo: Repository<ResCountry>,
-        @InjectRepository(ResPartner)
-        private readonly partnerRepo: Repository<ResPartner>,
         @InjectRepository(CrmLead)
         private readonly crmLeadRepo: Repository<CrmLead>,
-        @InjectRepository(CrmStage)
-        private readonly crmStageRepo: Repository<CrmStage>,
-        @InjectRepository(UtmSource)
-        private readonly utmSourceRepo: Repository<UtmSource>,
         @InjectRepository(DiscussChannel)
         private readonly discussChannelRepo: Repository<DiscussChannel>,
         @InjectRepository(DiscussChannelMember)
         private readonly discussChannelMemberRepo: Repository<DiscussChannelMember>,
         @InjectRepository(MailMessage)
         private readonly mailMessageRepo: Repository<MailMessage>,
-        @InjectRepository(CampaginsSources)
-        private readonly campaginsSourcesRepo: Repository<CampaginsSources>,
         @InjectRepository(ClinicBranch)
         private readonly clinicBranchRepo: Repository<ClinicBranch>,
+        @InjectRepository(ServiceTable)
+        private readonly serviceTableRepo: Repository<ServiceTable>,
+        @InjectRepository(CrmLeadWebsiteOrderLine)
+        private readonly leadOrderLineRepo: Repository<CrmLeadWebsiteOrderLine>,
+        @InjectRepository(MoraSmsLog)
+        private readonly moraSmsLogRepo: Repository<MoraSmsLog>,
     ) { }
 
     private getDateRange(period: string, startDate?: string, endDate?: string): { start: Date, end: Date } {
+        // All dates are built as UTC midnight so the DB (UTC) receives the correct day boundaries
+        // regardless of the server's local timezone (e.g. UTC+3 Saudi Arabia).
+        const todayUTC = new Date();
+        const yyyy = todayUTC.getUTCFullYear();
+        const mm   = todayUTC.getUTCMonth();
+        const dd   = todayUTC.getUTCDate();
+
         if (period === 'custom' && startDate && endDate) {
-            const start = new Date(startDate);
-            start.setHours(0, 0, 0, 0);
-            const end = new Date(endDate);
-            end.setHours(23, 59, 59, 999);
-            return { start, end };
+            // startDate/endDate arrive as 'YYYY-MM-DD' strings — parse as UTC
+            const [sy, sm, sd] = startDate.split('-').map(Number);
+            const [ey, em, ed] = endDate.split('-').map(Number);
+            return {
+                start: new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0)),
+                end:   new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999)),
+            };
         }
 
-        const now = new Date();
-        const start = new Date();
-        const end = new Date();
-        end.setHours(23, 59, 59, 999);
+        const end = new Date(Date.UTC(yyyy, mm, dd, 23, 59, 59, 999));
 
         if (period === 'daily') {
-            start.setHours(0, 0, 0, 0);
+            return { start: new Date(Date.UTC(yyyy, mm, dd, 0, 0, 0, 0)), end };
         } else if (period === 'weekly') {
-            start.setDate(now.getDate() - 7);
-            start.setHours(0, 0, 0, 0);
+            return { start: new Date(Date.UTC(yyyy, mm, dd - 6, 0, 0, 0, 0)), end };
         } else {
-            start.setDate(now.getDate() - 30);
-            start.setHours(0, 0, 0, 0);
+            return { start: new Date(Date.UTC(yyyy, mm, dd - 29, 0, 0, 0, 0)), end };
         }
-        return { start, end };
     }
 
     /**
@@ -140,65 +131,53 @@ export class DashboardService {
             branchStatsMap.get(bid).appointmentCount = Number(ac.count);
         });
 
-        // Try invoice→appointment→branch linkage first
-        const invoiceByBranch = await this.appointmentRepo.createQueryBuilder('app')
-            .select('app.branch_id', 'branchId')
-            .addSelect('SUM(COALESCE(am.amount_total, 0))', 'totalRevenue')
-            .addSelect('SUM(COALESCE(am.amount_total, 0) - COALESCE(am.amount_residual, 0))', 'paidAmount')
-            .addSelect('SUM(COALESCE(am.amount_residual, 0))', 'pendingAmount')
-            .leftJoin(AccountMove, 'am',
-                "am.id = app.invoice AND am.move_type = 'out_invoice' AND am.state = 'posted'")
-            .where(`${APPT_DATE} BETWEEN :start AND :end`, { start, end })
-            .andWhere('app.branch_id IS NOT NULL')
-            .groupBy('app.branch_id')
-            .getRawMany();
+        // 1. Fetch global invoice totals directly from account_move
+        // totalRevenue = amount_untaxed  → matches Odoo "Invoiced" KPI exactly
+        // totalForRate  = amount_total   → denominator for collection rate %
+        // paidAmount/pendingAmount are from amount_total basis, then we split totalRevenue
+        //   proportionally so that paid + pending = totalRevenue always (consistent with KPI card)
+        const globalTotals = await this.accountMoveRepo.createQueryBuilder('inv')
+            .select('SUM(inv.amount_untaxed)', 'totalRevenue')
+            .addSelect('SUM(inv.amount_total)', 'totalForRate')
+            .addSelect('SUM(inv.amount_total - COALESCE(inv.amount_residual, 0))', 'paidAmount')
+            .addSelect('SUM(COALESCE(inv.amount_residual, 0))', 'pendingAmount')
+            .where("inv.move_type IN ('out_invoice','out_receipt') AND inv.state = 'posted'")
+            .andWhere('inv.invoice_date BETWEEN :start AND :end', { start, end })
+            .getRawOne();
 
-        const hasLinkedRevenue = invoiceByBranch.some(r => Number(r.totalRevenue) > 0);
+        const gTotalRevenue  = Number(globalTotals?.totalRevenue) || 0;
+        const gTotalForRate  = Number(globalTotals?.totalForRate) || 0;
+        const collectedRatio = gTotalForRate > 0
+            ? Number(globalTotals?.paidAmount) / gTotalForRate
+            : 0;
+        // Split untaxed revenue by the same collected ratio → paid + pending = totalRevenue
+        const gTotalPaid    = Math.round(gTotalRevenue * collectedRatio);
+        const gTotalPending = gTotalRevenue - gTotalPaid;
 
-        if (hasLinkedRevenue) {
-            invoiceByBranch.forEach(row => {
-                const bid = Number(row.branchId);
-                const stats = branchStatsMap.get(bid);
-                if (stats) {
-                    stats.totalRevenue = Number(row.totalRevenue) || 0;
-                    stats.paidInvoices = Number(row.paidAmount) || 0;
-                    stats.pendingInvoices = Number(row.pendingAmount) || 0;
-                }
-            });
-        } else {
-            // Fallback: distribute account_move totals by appointment share
-            const invTotals = await this.accountMoveRepo.createQueryBuilder('inv')
-                .select('SUM(inv.amount_total)', 'totalRevenue')
-                .addSelect('SUM(inv.amount_total - COALESCE(inv.amount_residual, 0))', 'paidAmount')
-                .addSelect('SUM(COALESCE(inv.amount_residual, 0))', 'pendingAmount')
-                .where("inv.move_type = 'out_invoice' AND inv.state = 'posted'")
-                .andWhere('inv.invoice_date BETWEEN :start AND :end', { start, end })
-                .getRawOne();
+        // 2. Distribute global totals by appointment share per branch
+        apptByBranch.forEach(ac => {
+            const bid   = Number(ac.branchId);
+            const share = totalAppts > 0 ? Number(ac.count) / totalAppts : 0;
+            const stats = branchStatsMap.get(bid);
+            if (stats) {
+                stats.totalRevenue    = Math.round(gTotalRevenue * share);
+                stats.paidInvoices    = Math.round(gTotalPaid    * share);
+                stats.pendingInvoices = Math.round(gTotalPending * share);
+            }
+        });
 
-            const totalRev = Number(invTotals?.totalRevenue) || 0;
-            const totalPaid = Number(invTotals?.paidAmount) || 0;
-            const totalPending = Number(invTotals?.pendingAmount) || 0;
-
-            apptByBranch.forEach(ac => {
-                const bid = Number(ac.branchId);
-                const share = totalAppts > 0 ? Number(ac.count) / totalAppts : 0;
-                const stats = branchStatsMap.get(bid);
-                if (stats) {
-                    stats.totalRevenue = Math.round(totalRev * share);
-                    stats.paidInvoices = Math.round(totalPaid * share);
-                    stats.pendingInvoices = Math.round(totalPending * share);
-                }
-            });
-        }
-
+        // 3. Build branch revenue array (after totals are applied)
+        const globalCollectionRate = gTotalForRate > 0
+            ? Math.round((gTotalPaid / gTotalForRate) * 100)
+            : 0;
         const branchRevenue = Array.from(branchStatsMap.values()).map(b => ({
             ...b,
-            collectionRate: b.totalRevenue > 0 ? Math.round((b.paidInvoices / b.totalRevenue) * 100) : 0,
+            collectionRate: globalCollectionRate,
             revenuePerAppointment: b.appointmentCount > 0 ? Math.round(b.totalRevenue / b.appointmentCount) : 0,
         }));
         const ranked = [...branchRevenue].sort((a, b) => b.totalRevenue - a.totalRevenue);
 
-        // Daily trend per branch
+        // 4. Daily trend — distribute daily revenue by that day's appointment share
         const dailyRaw = await this.appointmentRepo.createQueryBuilder('app')
             .select(`to_char(${APPT_DATE}, 'YYYY-MM-DD')`, 'date')
             .addSelect('app.branch_id', 'branchId')
@@ -209,16 +188,15 @@ export class DashboardService {
             .orderBy('date', 'ASC')
             .getRawMany();
 
-        const totalRev = branchRevenue.reduce((s, b) => s + b.totalRevenue, 0);
         const trendMap = new Map<string, any[]>();
         dailyRaw.forEach(row => {
             if (!trendMap.has(row.date)) trendMap.set(row.date, []);
-            const bid = Number(row.branchId);
+            const bid         = Number(row.branchId);
             const branchShare = totalAppts > 0 ? Number(row.appointments) / totalAppts : 0;
             trendMap.get(row.date).push({
                 branchId: bid,
                 branchName: branchMap.get(bid) || `Branch ${bid}`,
-                revenue: Math.round(totalRev * branchShare),
+                revenue: Math.round(gTotalRevenue * branchShare),
                 appointments: Number(row.appointments),
             });
         });
@@ -226,11 +204,11 @@ export class DashboardService {
         return {
             period,
             summary: {
-                totalRevenue: branchRevenue.reduce((s, b) => s + b.totalRevenue, 0),
-                totalPaid: branchRevenue.reduce((s, b) => s + b.paidInvoices, 0),
-                totalPending: branchRevenue.reduce((s, b) => s + b.pendingInvoices, 0),
-                overallCollectionRate: branchRevenue.reduce((s, b) => s + b.totalRevenue, 0) > 0
-                    ? Math.round((branchRevenue.reduce((s, b) => s + b.paidInvoices, 0) / branchRevenue.reduce((s, b) => s + b.totalRevenue, 0)) * 100)
+                totalRevenue: gTotalRevenue,
+                totalPaid:    gTotalPaid,
+                totalPending: gTotalPending,
+                overallCollectionRate: gTotalForRate > 0
+                    ? Math.round((gTotalPaid / gTotalForRate) * 100)
                     : 0,
             },
             branchRevenue: ranked,
@@ -259,6 +237,7 @@ export class DashboardService {
             .innerJoin(ProductProduct, 'p', 'p.id = aml.product_id')
             .innerJoin(ProductTemplate, 't', 't.id = p.product_tmpl_id')
             .leftJoin(ProductCategory, 'c', 'c.id = t.categ_id')
+            .innerJoin('account_move', 'am', "am.id = aml.move_id AND am.move_type IN ('out_invoice','out_receipt')")
             .where('aml.date BETWEEN :start AND :end', { start, end })
             .andWhere("aml.parent_state = 'posted' AND aml.display_type = 'product'")
             .groupBy('t.id').addGroupBy('t.name').addGroupBy('c.name')
@@ -363,13 +342,14 @@ export class DashboardService {
     async getPatientAnalytics(period: string = 'monthly', startDate?: string, endDate?: string) {
         const { start, end } = this.getDateRange(period, startDate, endDate);
 
-        // Count unique patients who had appointments in this period
+        // New patients = registered (created) in this period — matches Odoo's Patients list
+        const newPatientsCount = await this.patientRepo.createQueryBuilder('pm')
+            .where('pm.create_date BETWEEN :start AND :end', { start, end })
+            .getCount();
+
+        // Unique patients who had appointments in this period
         const periodPatientStats = await this.appointmentRepo.createQueryBuilder('app')
             .select('COUNT(DISTINCT app.patient_id)', 'total')
-            .addSelect(
-                `COUNT(DISTINCT CASE WHEN pm.create_date BETWEEN :start AND :end THEN app.patient_id END)`,
-                'newPatients'
-            )
             .addSelect(
                 `COUNT(DISTINCT CASE WHEN pm.create_date < :start THEN app.patient_id END)`,
                 'returningPatients'
@@ -379,9 +359,8 @@ export class DashboardService {
             .setParameters({ start, end })
             .getRawOne();
 
-        const totalInPeriod   = Number(periodPatientStats?.total ?? 0);
-        const newPatientsCount = Number(periodPatientStats?.newPatients ?? 0);
-        const returningCount   = Number(periodPatientStats?.returningPatients ?? 0);
+        const totalInPeriod  = Number(periodPatientStats?.total ?? 0);
+        const returningCount = Number(periodPatientStats?.returningPatients ?? 0);
 
         // Gender stored as 'Male'/'Female'/'male' — compare case-insensitively
         const demographics = {
@@ -421,14 +400,15 @@ export class DashboardService {
             weeklyGrowth.push({ week: `Week ${4 - i}`, newPatients: count });
         }
 
-        // Average appointment duration = end_date - appointment_date (in minutes)
+        // Average appointment duration = end_date - appointment_date (in minutes).
+        // Queried all-time (no period filter) because end_date is only set on completed
+        // appointments and recent periods often have none — the clinic slot length is fixed.
         const durationStats = await this.appointmentRepo.createQueryBuilder('app')
             .select(
                 `ROUND(AVG(EXTRACT(EPOCH FROM (app.end_date - app.appointment_date)) / 60))`,
                 'avgDuration'
             )
-            .where(`${APPT_DATE} BETWEEN :start AND :end`, { start, end })
-            .andWhere('app.end_date IS NOT NULL')
+            .where('app.end_date IS NOT NULL')
             .andWhere('app.appointment_date IS NOT NULL')
             .getRawOne();
         const avgDurationMinutes = Number(durationStats?.avgDuration ?? 0);
@@ -441,8 +421,7 @@ export class DashboardService {
                     `ROUND(AVG(CASE WHEN app.end_date IS NOT NULL AND app.appointment_date IS NOT NULL THEN EXTRACT(EPOCH FROM (app.end_date - app.appointment_date)) / 60 END))`,
                     'avgDuration'
                 )
-                // onthyfly = booked but never confirmed/progressed = closest proxy to no-show
-                .addSelect(`SUM(CASE WHEN app.appointment_state = 'onthyfly' THEN 1 ELSE 0 END)`, 'noShows')
+                .addSelect(`SUM(CASE WHEN app.missed_state = 'cancelled' THEN 1 ELSE 0 END)`, 'noShows')
                 .where('app.branch_id = :bid', { bid: b.id })
                 .andWhere(`${APPT_DATE} BETWEEN :start AND :end`, { start, end })
                 .setParameters({ bid: b.id, start, end })
@@ -465,7 +444,7 @@ export class DashboardService {
                 total: totalInPeriod,
                 newPatients: newPatientsCount,
                 returningPatients: returningCount,
-                newPatientPercentage: totalInPeriod > 0 ? Math.round((newPatientsCount / totalInPeriod) * 100) : 0,
+                newPatientPercentage: totalInPeriod > 0 ? Math.round(((totalInPeriod - returningCount) / totalInPeriod) * 100) : 0,
             },
             dailyTraffic: trafficData.map(t => ({
                 date: t.date,
@@ -498,76 +477,88 @@ export class DashboardService {
     }
 
     /**
-     * Performance Tracking
+     * Performance Tracking — based on service_table (actual procedures per appointment)
      */
-    async getPerformanceTracking() {
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-        const tonight = new Date(); tonight.setHours(23, 59, 59, 999);
+    async getPerformanceTracking(period: string = 'daily', startDate?: string, endDate?: string) {
+        const { start, end } = this.getDateRange(period, startDate, endDate);
 
-        // COALESCE: include appointments created today that have no scheduled appointment_date
-        const todayApps = await this.appointmentRepo.createQueryBuilder('app')
-            .where(`${APPT_DATE} BETWEEN :start AND :end`, { start: today, end: tonight })
-            .getMany();
-
-        // 'visit_closed' is the actual completed state in this database (not 'closed')
-        const completedApps = todayApps.filter(a => ['paid', 'visit_closed'].includes(a.appointment_state || ''));
-        const cancelledApps = todayApps.filter(a => ['cancel', 'cancelled'].includes(a.appointment_state || ''));
-        const missedApps    = todayApps.filter(a => a.missed_state === 'missed');
-
-        const statusOverview = {
-            totalProcedures: todayApps.length,
-            completed: completedApps.length,
-            inProgress: todayApps.filter(a => ['in_chair', 'arrived'].includes(a.appointment_state || '')).length,
-            pending: todayApps.filter(a => a.appointment_state === 'confirmed').length,
-            completionRate: todayApps.length > 0
-                ? Math.round((completedApps.length / todayApps.length) * 100)
-                : 0,
-            cancelled: cancelledApps.length,
-            noShows: missedApps.length
-        };
-
-        // Doctor KPIs — same COALESCE date filter
-        const doctorStats = await this.appointmentRepo.createQueryBuilder('app')
-            .select('app.doctor_id', 'doctorId')
-            .addSelect('COUNT(*)', 'total')
-            .addSelect(`SUM(CASE WHEN app.appointment_state IN ('paid','visit_closed') THEN 1 ELSE 0 END)`, 'completed')
-            .addSelect(`AVG(CASE WHEN app.end_date IS NOT NULL AND app.appointment_state IN ('paid','visit_closed')
-                THEN EXTRACT(EPOCH FROM (app.end_date - app.appointment_date))/60 END)`, 'avgProcedureMinutes')
-            .leftJoin(DoctorModel, 'dm', 'dm.id = app.doctor_id')
-            .leftJoin(ResPartner, 'rp', 'rp.id = dm.partner_id')
-            .addSelect('rp.name', 'doctorName')
-            .where(`${APPT_DATE} BETWEEN :start AND :end`, { start: today, end: tonight })
-            .groupBy('app.doctor_id')
-            .addGroupBy('rp.name')
+        // Procedures by appointment state
+        const procByState = await this.serviceTableRepo.createQueryBuilder('st')
+            .select('orm.appointment_state', 'state')
+            .addSelect('orm.missed_state', 'missedState')
+            .addSelect('COUNT(st.id)', 'count')
+            .innerJoin(OpdRegistrationModel, 'orm', 'orm.id = st.rec_id')
+            .where(`${APPT_DATE.replace(/\bapp\b/g, 'orm')} BETWEEN :start AND :end`, { start, end })
+            .groupBy('orm.appointment_state')
+            .addGroupBy('orm.missed_state')
             .getRawMany();
 
-        const doctorKPIs = doctorStats.map(s => ({
+        let total = 0, completed = 0, inProgress = 0, pending = 0, cancelled = 0;
+        for (const row of procByState) {
+            const n = Number(row.count);
+            total += n;
+            if (['paid', 'visit_closed'].includes(row.state))                   completed  += n;
+            else if (['in_chair', 'arrived', 'in_payment'].includes(row.state)) inProgress += n;
+            else if (row.state === 'confirmed')                                  pending    += n;
+            if (row.missedState === 'cancelled')                                 cancelled  += n;
+        }
+
+        // Appointments with no procedures that are cancelled (no-shows) — count from appt table
+        const cancelledAppts = await this.appointmentRepo.createQueryBuilder('app')
+            .where(`${APPT_DATE} BETWEEN :start AND :end`, { start, end })
+            .andWhere("app.missed_state = 'cancelled'")
+            .getCount();
+
+        const statusOverview = {
+            totalProcedures: total,
+            completed,
+            inProgress,
+            pending,
+            cancelled,
+            noShows: cancelledAppts,
+            completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+        };
+
+        // Doctor KPIs from service_table — real procedure counts + revenue per doctor
+        const doctorProcStats = await this.serviceTableRepo.createQueryBuilder('st')
+            .select('orm.doctor_id', 'doctorId')
+            .addSelect('rp.name', 'doctorName')
+            .addSelect('COUNT(st.id)', 'totalProcedures')
+            .addSelect(`SUM(CASE WHEN orm.appointment_state IN ('paid','visit_closed') THEN 1 ELSE 0 END)`, 'completedProcedures')
+            .addSelect('SUM(st.sale_price * st.quantity)', 'revenue')
+            .addSelect(`AVG(CASE WHEN orm.end_date IS NOT NULL AND orm.appointment_date IS NOT NULL
+                THEN EXTRACT(EPOCH FROM (orm.end_date - orm.appointment_date)) / 60 END)`, 'avgProcedureMinutes')
+            .innerJoin(OpdRegistrationModel, 'orm', 'orm.id = st.rec_id')
+            .leftJoin(DoctorModel, 'dm', 'dm.id = orm.doctor_id')
+            .leftJoin(ResPartner, 'rp', 'rp.id = dm.partner_id')
+            .where(`${APPT_DATE.replace(/\bapp\b/g, 'orm')} BETWEEN :start AND :end`, { start, end })
+            .andWhere('orm.doctor_id IS NOT NULL')
+            .groupBy('orm.doctor_id')
+            .addGroupBy('rp.name')
+            .orderBy('COUNT(st.id)', 'DESC')
+            .getRawMany();
+
+        const doctorKPIs = doctorProcStats.map(s => ({
             doctorName: s.doctorName || `Doctor ${s.doctorId}`,
-            completionRate: Number(s.total) > 0 ? Math.round((Number(s.completed) / Number(s.total)) * 100) : 0,
+            totalProcedures: Number(s.totalProcedures),
+            completedProcedures: Number(s.completedProcedures),
+            completionRate: Number(s.totalProcedures) > 0
+                ? Math.round((Number(s.completedProcedures) / Number(s.totalProcedures)) * 100)
+                : 0,
+            revenue: Math.round(Number(s.revenue) || 0),
             avgProcedureTime: s.avgProcedureMinutes ? Math.round(Number(s.avgProcedureMinutes)) : null,
-            patientSatisfaction: null,
         }));
 
-        // Hourly distribution — returns appointments/completed/inProgress per hour
+        // Hourly distribution from appointments
         const hourlyDistribution = await this.appointmentRepo.createQueryBuilder('app')
             .select(`to_char(${APPT_DATE}, 'HH24:00')`, 'hour')
             .addSelect('COUNT(*)', 'appointments')
             .addSelect(`SUM(CASE WHEN app.appointment_state IN ('paid','visit_closed') THEN 1 ELSE 0 END)`, 'completed')
             .addSelect(`SUM(CASE WHEN app.appointment_state IN ('in_chair','arrived') THEN 1 ELSE 0 END)`, 'inProgress')
-            .where(`${APPT_DATE} BETWEEN :start AND :end`, { start: today, end: tonight })
+            .where(`${APPT_DATE} BETWEEN :start AND :end`, { start, end })
             .groupBy(`to_char(${APPT_DATE}, 'HH24:00')`)
             .orderBy('hour', 'ASC')
             .getRawMany();
-
-        const perfBranches = await this.clinicBranchRepo.find({ where: { active: true } });
-        const branchPerformance = perfBranches.map(b => {
-            const apps = todayApps.filter(a => Number(a.branch_id) === b.id);
-            return {
-                branchName: b.name,
-                utilizationRate: apps.length > 0 ? Math.min(100, Math.round((apps.length / 20) * 100)) : 0,
-                avgResponseTime: null,
-            };
-        });
 
         return {
             statusOverview,
@@ -578,91 +569,107 @@ export class DashboardService {
                 completed: Number(h.completed),
                 inProgress: Number(h.inProgress),
             })),
-            branchPerformance,
         };
     }
 
     /**
      * Lead Analytics
+     * Leads in this system = website booking orders. Each lead has order_total
+     * and order_status. Opportunities = leads that were converted by the sales team.
      */
     async getLeadAnalytics(period: string = 'monthly', startDate?: string, endDate?: string) {
         const { start, end } = this.getDateRange(period, startDate, endDate);
 
-        const totalLeads = await this.crmLeadRepo
-            .createQueryBuilder('cl')
+        // Total leads + order value in period
+        const totalsRaw = await this.crmLeadRepo.createQueryBuilder('cl')
+            .select('COUNT(*)', 'totalLeads')
+            .addSelect(`SUM(CASE WHEN cl.type = 'opportunity' THEN 1 ELSE 0 END)`, 'opportunities')
+            .addSelect(`SUM(CASE WHEN cl.active = false THEN 1 ELSE 0 END)`, 'lost')
+            .addSelect('SUM(COALESCE(cl.order_total, 0))', 'totalOrderValue')
+            .addSelect(`SUM(CASE WHEN cl.order_status = 'pending' THEN COALESCE(cl.order_total, 0) ELSE 0 END)`, 'pendingOrderValue')
             .where('cl.create_date BETWEEN :start AND :end', { start, end })
-            .getCount();
+            .getRawOne();
 
-        const byStatusRaw = await this.crmLeadRepo
-            .createQueryBuilder('cl')
-            .select(`CASE
-                WHEN cl.won_status = 'won'                          THEN 'Converted'
-                WHEN cl.won_status = 'lost' OR cl.active = false    THEN 'Lost'
-                WHEN cl.type = 'opportunity'                        THEN 'In Progress'
-                ELSE 'New'
-            END`, 'status')
-            .addSelect('COUNT(*)', 'count')
-            .where('cl.create_date BETWEEN :start AND :end', { start, end })
-            .groupBy('status')
-            .getRawMany();
+        const totalLeads      = Number(totalsRaw?.totalLeads   ?? 0);
+        const opportunities   = Number(totalsRaw?.opportunities ?? 0);
+        const lost            = Number(totalsRaw?.lost          ?? 0);
+        const newLeads        = totalLeads - opportunities - lost;
+        const totalOrderValue = Math.round(Number(totalsRaw?.totalOrderValue   ?? 0));
+        const pendingOrderValue = Math.round(Number(totalsRaw?.pendingOrderValue ?? 0));
+        const conversionRate  = totalLeads > 0 ? Math.round((opportunities / totalLeads) * 100) : 0;
 
-        const converted = byStatusRaw.find(s => s.status === 'Converted');
-        const conversionRate = totalLeads > 0
-            ? Math.round((Number(converted?.count ?? 0) / totalLeads) * 100)
-            : 0;
+        // Status breakdown
+        const byStatus = [
+            { name: 'New',         value: newLeads      },
+            { name: 'In Progress', value: opportunities  },
+            { name: 'Lost',        value: lost           },
+        ].filter(s => s.value > 0);
 
-        const bySourceRaw = await this.crmLeadRepo
-            .createQueryBuilder('cl')
-            .select(`COALESCE(us.name, cl.lead_source, 'Direct')`, 'source')
+        // By source — UTM source → medium → lead_source field → Direct
+        const bySourceRaw = await this.crmLeadRepo.createQueryBuilder('cl')
+            .select(`COALESCE(us.name, um.name, cl.lead_source, 'Direct')`, 'source')
             .addSelect('COUNT(*)', 'leads')
-            .addSelect(`SUM(CASE WHEN cl.won_status = 'won' THEN 1 ELSE 0 END)`, 'converted')
+            .addSelect(`SUM(CASE WHEN cl.type = 'opportunity' THEN 1 ELSE 0 END)`, 'converted')
+            .addSelect('SUM(COALESCE(cl.order_total, 0))', 'orderValue')
             .leftJoin(UtmSource, 'us', 'us.id = cl.source_id')
+            .leftJoin('utm_medium', 'um', 'um.id = cl.medium_id')
             .where('cl.create_date BETWEEN :start AND :end', { start, end })
-            .groupBy(`COALESCE(us.name, cl.lead_source, 'Direct')`)
+            .groupBy(`COALESCE(us.name, um.name, cl.lead_source, 'Direct')`)
             .orderBy('leads', 'DESC')
             .getRawMany();
 
-        const byStageRaw = await this.crmLeadRepo
-            .createQueryBuilder('cl')
+        // By stage
+        const byStageRaw = await this.crmLeadRepo.createQueryBuilder('cl')
             .select(`cs.name->>'en_US'`, 'stage')
             .addSelect('COUNT(*)', 'count')
             .leftJoin(CrmStage, 'cs', 'cs.id = cl.stage_id')
             .where('cl.create_date BETWEEN :start AND :end', { start, end })
             .groupBy(`cs.name->>'en_US'`)
+            .orderBy('count', 'DESC')
             .getRawMany();
 
-        const conversionTrend = await this.crmLeadRepo
-            .createQueryBuilder('cl')
+        // Daily trend — ordered by actual date not formatted string
+        const conversionTrend = await this.crmLeadRepo.createQueryBuilder('cl')
             .select(`to_char(cl.create_date, 'Mon DD')`, 'date')
+            .addSelect(`to_char(cl.create_date, 'YYYY-MM-DD')`, 'fullDate')
             .addSelect('COUNT(*)', 'leads')
-            .addSelect(`SUM(CASE WHEN cl.won_status = 'won' THEN 1 ELSE 0 END)`, 'bookings')
+            .addSelect(`SUM(CASE WHEN cl.type = 'opportunity' THEN 1 ELSE 0 END)`, 'bookings')
+            .addSelect('SUM(COALESCE(cl.order_total, 0))', 'orderValue')
             .where('cl.create_date BETWEEN :start AND :end', { start, end })
-            .groupBy(`to_char(cl.create_date, 'Mon DD')`)
-            .orderBy(`to_char(cl.create_date, 'Mon DD')`, 'ASC')
+            .groupBy(`to_char(cl.create_date, 'Mon DD'), to_char(cl.create_date, 'YYYY-MM-DD')`)
+            .orderBy(`to_char(cl.create_date, 'YYYY-MM-DD')`, 'ASC')
             .getRawMany();
 
-        const avgConvert = await this.crmLeadRepo
-            .createQueryBuilder('cl')
-            .select('AVG(cl.days_to_convert)', 'avg')
-            .where(`cl.won_status = 'won'`)
-            .andWhere('cl.create_date BETWEEN :start AND :end', { start, end })
-            .getRawOne();
+        // Top booked services from website order lines linked to leads in this period
+        const topServicesRaw = await this.leadOrderLineRepo.createQueryBuilder('ol')
+            .select('ol.product_name', 'productName')
+            .addSelect('SUM(ol.quantity)', 'totalQty')
+            .addSelect('SUM(ol.total)', 'totalRevenue')
+            .innerJoin(CrmLead, 'cl', 'cl.id = ol.lead_id')
+            .where('cl.create_date BETWEEN :start AND :end', { start, end })
+            .andWhere('ol.product_name IS NOT NULL')
+            .groupBy('ol.product_name')
+            .orderBy('SUM(ol.total)', 'DESC')
+            .limit(10)
+            .getRawMany();
 
         return {
             period,
             summary: {
                 totalLeads,
+                newLeads,
+                inProgressLeads: opportunities,
+                lostLeads: lost,
                 conversionRate,
-                avgDaysToConvert: avgConvert?.avg ? Math.round(Number(avgConvert.avg)) : 0,
+                totalOrderValue,
+                pendingOrderValue,
             },
-            byStatus: byStatusRaw.map(s => ({
-                name: s.status,
-                value: Number(s.count),
-            })),
+            byStatus,
             bySource: bySourceRaw.map(s => ({
                 source: s.source,
                 leads: Number(s.leads),
                 converted: Number(s.converted),
+                orderValue: Math.round(Number(s.orderValue ?? 0)),
             })),
             byStage: byStageRaw.map(s => ({
                 stage: s.stage || 'Unknown',
@@ -670,18 +677,28 @@ export class DashboardService {
             })),
             conversionTrend: conversionTrend.map(t => ({
                 date: t.date,
+                fullDate: t.fullDate,
                 leads: Number(t.leads),
                 bookings: Number(t.bookings),
+                orderValue: Math.round(Number(t.orderValue ?? 0)),
+            })),
+            topBookedServices: topServicesRaw.map(s => ({
+                productName: s.productName,
+                totalQty: Number(s.totalQty ?? 0),
+                totalRevenue: Math.round(Number(s.totalRevenue ?? 0)),
             })),
         };
     }
 
     /**
      * Communication Metrics
+     * Sources: discuss_channel (chats), mail_message (chatter on leads/appointments),
+     *          mora_sms_log (appointment SMS reminders — all via opd.registration.model)
      */
     async getCommunicationMetrics(period: string = 'monthly', startDate?: string, endDate?: string) {
         const { start, end } = this.getDateRange(period, startDate, endDate);
 
+        // Channels by type (all active, not period-filtered — it's a snapshot)
         const channelsByType = await this.discussChannelRepo
             .createQueryBuilder('dc')
             .select('dc.channel_type', 'type')
@@ -690,8 +707,9 @@ export class DashboardService {
             .groupBy('dc.channel_type')
             .getRawMany();
 
-        const activeChatVolume = channelsByType.reduce((s, c) => s + Number(c.count), 0);
+        const totalChannels = channelsByType.reduce((s, c) => s + Number(c.count), 0);
 
+        // Unanswered threads — channels with messages unseen by at least one member
         const unansweredRaw = await this.discussChannelMemberRepo
             .createQueryBuilder('dcm')
             .select('COUNT(DISTINCT dcm.channel_id)', 'count')
@@ -699,46 +717,86 @@ export class DashboardService {
             .where(`dcm.seen_message_id IS NULL OR dcm.seen_message_id < (
                 SELECT COALESCE(MAX(mm.id), 0)
                 FROM mail_message mm
-                WHERE mm.res_id = dcm.channel_id
-                AND mm.model = 'discuss.channel'
+                WHERE mm.res_id = dcm.channel_id AND mm.model = 'discuss.channel'
             )`)
             .getRawOne();
 
         const unansweredThreads = Number(unansweredRaw?.count ?? 0);
 
-        const totalLeadMessages = await this.mailMessageRepo
+        // Messages this period by relevant model
+        const msgCountsRaw = await this.mailMessageRepo
             .createQueryBuilder('mm')
-            .where(`mm.model = 'crm.lead'`)
-            .andWhere('mm.date BETWEEN :start AND :end', { start, end })
-            .getCount();
-
-        const responseTimeTrend = await this.mailMessageRepo
-            .createQueryBuilder('mm')
-            .select(`to_char(mm.date, 'Mon DD')`, 'date')
-            .addSelect('COUNT(DISTINCT mm.res_id)', 'activeLeads')
-            .addSelect('COUNT(*)', 'messages')
-            .where(`mm.model = 'crm.lead'`)
-            .andWhere('mm.date BETWEEN :start AND :end', { start, end })
-            .groupBy(`to_char(mm.date, 'Mon DD')`)
-            .orderBy(`to_char(mm.date, 'Mon DD')`, 'ASC')
+            .select('mm.model', 'model')
+            .addSelect('COUNT(*)', 'count')
+            .where('mm.date BETWEEN :start AND :end', { start, end })
+            .andWhere(`mm.model IN ('crm.lead', 'opd.registration.model', 'patient.model')`)
+            .groupBy('mm.model')
             .getRawMany();
+
+        const msgByModel = Object.fromEntries(msgCountsRaw.map(r => [r.model, Number(r.count)]));
+        const leadMessages        = msgByModel['crm.lead']                 ?? 0;
+        const appointmentMessages = msgByModel['opd.registration.model']   ?? 0;
+        const patientMessages     = msgByModel['patient.model']            ?? 0;
+
+        // SMS sent via Mora provider (all go to appointments)
+        const smsRaw = await this.moraSmsLogRepo.createQueryBuilder('sms')
+            .select('COUNT(*)', 'total')
+            .addSelect(`SUM(CASE WHEN sms.status = 'success' THEN 1 ELSE 0 END)`, 'success')
+            .where('sms.create_date BETWEEN :start AND :end', { start, end })
+            .getRawOne();
+
+        const smsSent        = Number(smsRaw?.total   ?? 0);
+        const smsDelivered   = Number(smsRaw?.success ?? 0);
+        const smsSuccessRate = smsSent > 0 ? Math.round((smsDelivered / smsSent) * 100) : 0;
+
+        // Daily trend — messages per day across leads + appointments + SMS
+        const msgTrendRaw = await this.mailMessageRepo
+            .createQueryBuilder('mm')
+            .select(`to_char(mm.date, 'YYYY-MM-DD')`, 'fullDate')
+            .addSelect(`to_char(mm.date, 'Mon DD')`, 'date')
+            .addSelect(`SUM(CASE WHEN mm.model = 'crm.lead'               THEN 1 ELSE 0 END)`, 'leadMessages')
+            .addSelect(`SUM(CASE WHEN mm.model = 'opd.registration.model' THEN 1 ELSE 0 END)`, 'appointmentMessages')
+            .addSelect('COUNT(*)', 'total')
+            .where('mm.date BETWEEN :start AND :end', { start, end })
+            .andWhere(`mm.model IN ('crm.lead', 'opd.registration.model', 'patient.model')`)
+            .groupBy(`to_char(mm.date, 'YYYY-MM-DD'), to_char(mm.date, 'Mon DD')`)
+            .orderBy(`to_char(mm.date, 'YYYY-MM-DD')`, 'ASC')
+            .getRawMany();
+
+        // SMS by day — merge into trend
+        const smsTrendRaw = await this.moraSmsLogRepo.createQueryBuilder('sms')
+            .select(`to_char(sms.create_date, 'YYYY-MM-DD')`, 'fullDate')
+            .addSelect('COUNT(*)', 'smsSent')
+            .where('sms.create_date BETWEEN :start AND :end', { start, end })
+            .groupBy(`to_char(sms.create_date, 'YYYY-MM-DD')`)
+            .getRawMany();
+
+        const smsMap = new Map(smsTrendRaw.map(r => [r.fullDate, Number(r.smsSent)]));
 
         return {
             period,
             summary: {
-                activeChatVolume,
+                totalChannels,
                 unansweredThreads,
-                totalLeadMessages,
-                avgFirstResponseMinutes: null,
+                leadMessages,
+                appointmentMessages,
+                patientMessages,
+                totalMessages: leadMessages + appointmentMessages + patientMessages,
+                smsSent,
+                smsDelivered,
+                smsSuccessRate,
             },
             byChannelType: channelsByType.map(c => ({
                 type: c.type,
                 count: Number(c.count),
             })),
-            responseTimeTrend: responseTimeTrend.map(t => ({
+            dailyTrend: msgTrendRaw.map(t => ({
                 date: t.date,
-                activeLeads: Number(t.activeLeads),
-                messages: Number(t.messages),
+                fullDate: t.fullDate,
+                leadMessages:        Number(t.leadMessages),
+                appointmentMessages: Number(t.appointmentMessages),
+                totalMessages:       Number(t.total),
+                smsSent:             smsMap.get(t.fullDate) ?? 0,
             })),
         };
     }
@@ -750,14 +808,13 @@ export class DashboardService {
         const { start, end } = this.getDateRange(period, startDate, endDate);
 
         const CONFIRMED = `('confirmed','arrived','in_chair','in_payment','paid','visit_closed')`;
-        const CANCELLED = `('cancel','cancelled')`;
 
         // COALESCE so appointments without a scheduled date are included via create_date
         const summary = await this.appointmentRepo
             .createQueryBuilder('o')
             .select('COUNT(*)', 'total')
             .addSelect(`SUM(CASE WHEN o.appointment_state IN ${CONFIRMED} THEN 1 ELSE 0 END)`, 'confirmed')
-            .addSelect(`SUM(CASE WHEN o.appointment_state IN ${CANCELLED} THEN 1 ELSE 0 END)`, 'cancelled')
+            .addSelect(`SUM(CASE WHEN o.missed_state = 'cancelled' THEN 1 ELSE 0 END)`, 'cancelled')
             .where(`${OPD_DATE} BETWEEN :start AND :end`, { start, end })
             .getRawOne();
 
@@ -771,7 +828,7 @@ export class DashboardService {
             .select(`COALESCE(cs.name, 'Unknown')`, 'source')
             .addSelect('COUNT(*)', 'total')
             .addSelect(`SUM(CASE WHEN o.appointment_state IN ${CONFIRMED} THEN 1 ELSE 0 END)`, 'confirmed')
-            .addSelect(`SUM(CASE WHEN o.appointment_state IN ${CANCELLED} THEN 1 ELSE 0 END)`, 'cancelled')
+            .addSelect(`SUM(CASE WHEN o.missed_state = 'cancelled' THEN 1 ELSE 0 END)`, 'cancelled')
             .leftJoin(CampaginsSources, 'cs', 'cs.id = o.patient_source')
             .where(`${OPD_DATE} BETWEEN :start AND :end`, { start, end })
             .groupBy(`COALESCE(cs.name, 'Unknown')`)
@@ -792,7 +849,7 @@ export class DashboardService {
             .select(`to_char(${OPD_DATE}, 'Mon DD')`, 'date')
             .addSelect('COUNT(*)', 'total')
             .addSelect(`SUM(CASE WHEN o.appointment_state IN ${CONFIRMED} THEN 1 ELSE 0 END)`, 'confirmed')
-            .addSelect(`SUM(CASE WHEN o.appointment_state IN ${CANCELLED} THEN 1 ELSE 0 END)`, 'cancelled')
+            .addSelect(`SUM(CASE WHEN o.missed_state = 'cancelled' THEN 1 ELSE 0 END)`, 'cancelled')
             .where(`${OPD_DATE} BETWEEN :start AND :end`, { start, end })
             .groupBy(`to_char(${OPD_DATE}, 'Mon DD')`)
             .orderBy(`to_char(${OPD_DATE}, 'Mon DD')`, 'ASC')
@@ -856,13 +913,16 @@ export class DashboardService {
         const total = byDateRaw.reduce((s, d) => s + Number(d.count), 0);
 
         // Doctor stats — appointment count, total minutes, occupancy rate
-        const periodDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-        const maxMinutesPerDoctor = periodDays * 8 * 60;
-
+        // Occupancy uses distinct working days (not period_days) as denominator so it reflects
+        // how busy the doctor was on the days they actually worked.
         const doctorRaw = await this.appointmentRepo.createQueryBuilder('app')
             .select('app.doctor_id', 'doctorId')
             .addSelect('rp.name', 'name')
             .addSelect('COUNT(*)', 'appointmentCount')
+            .addSelect(
+                `COUNT(DISTINCT DATE(${APPT_DATE}))`,
+                'distinctDays'
+            )
             .addSelect(`SUM(CASE
                 WHEN app.end_date IS NOT NULL AND app.appointment_date IS NOT NULL
                 THEN GREATEST(1, EXTRACT(EPOCH FROM (app.end_date - app.appointment_date))/60)
@@ -875,21 +935,34 @@ export class DashboardService {
             .orderBy('COUNT(*)', 'DESC')
             .getRawMany();
 
-        const doctorStats = doctorRaw.map(d => ({
-            id: d.doctorId,
-            name: d.name || `Doctor ${d.doctorId}`,
-            appointmentCount: Number(d.appointmentCount),
-            totalMinutes: Math.round(Number(d.totalMinutes)),
-            occupancyRate: Math.min(100, Math.round((Number(d.totalMinutes) / maxMinutesPerDoctor) * 100)),
-        }));
+        const doctorStats = doctorRaw.map(d => {
+            const totalMinutes  = Math.round(Number(d.totalMinutes));
+            const distinctDays  = Math.max(1, Number(d.distinctDays));
+            const maxMinutes    = distinctDays * 8 * 60;
+            return {
+                id: d.doctorId,
+                name: d.name || `Doctor ${d.doctorId}`,
+                appointmentCount: Number(d.appointmentCount),
+                totalMinutes,
+                occupancyRate: Math.min(100, Math.round((totalMinutes / maxMinutes) * 100)),
+            };
+        });
 
-        // Patient stats
-        const uniquePatientsRaw = await this.appointmentRepo.createQueryBuilder('app')
-            .select('COUNT(DISTINCT app.patient_id)', 'count')
+        // Patient stats — unique + returning from appointment data
+        // returning = had appointment this period AND registered before it
+        const apptPatientStats = await this.appointmentRepo.createQueryBuilder('app')
+            .select('COUNT(DISTINCT app.patient_id)', 'uniquePatients')
+            .addSelect(
+                `COUNT(DISTINCT CASE WHEN pm.create_date < :start THEN app.patient_id END)`,
+                'returningPatients'
+            )
+            .leftJoin(PatientModel, 'pm', 'pm.id = app.patient_id')
             .where(`${APPT_DATE} BETWEEN :start AND :end`, { start, end })
             .andWhere('app.patient_id IS NOT NULL')
+            .setParameters({ start, end })
             .getRawOne();
 
+        // new patients = registered in this period (matches Patients tab)
         const newPatientsRaw = await this.patientRepo.createQueryBuilder('p')
             .select('COUNT(*)', 'count')
             .where('p.create_date BETWEEN :start AND :end', { start, end })
@@ -908,8 +981,9 @@ export class DashboardService {
             .limit(5)
             .getRawMany();
 
-        const uniquePatients = Number(uniquePatientsRaw?.count ?? 0);
-        const newPatients    = Number(newPatientsRaw?.count ?? 0);
+        const uniquePatients    = Number(apptPatientStats?.uniquePatients   ?? 0);
+        const returningPatients = Number(apptPatientStats?.returningPatients ?? 0);
+        const newPatients       = Number(newPatientsRaw?.count ?? 0);
 
         return {
             period,
@@ -921,10 +995,9 @@ export class DashboardService {
             },
             doctorStats,
             patientStats: {
-                totalPatients: total,
                 uniquePatients,
                 newPatients,
-                returningPatients: Math.max(0, uniquePatients - newPatients),
+                returningPatients,
                 frequentVisitors: frequentRaw.map(v => ({
                     name: v.name || `Patient ${v.patientId}`,
                     count: Number(v.count),
@@ -938,7 +1011,7 @@ export class DashboardService {
             this.getFinancialOverview(period, startDate, endDate),
             this.getServicesAndInventory(period, startDate, endDate),
             this.getPatientAnalytics(period, startDate, endDate),
-            this.getPerformanceTracking(),
+            this.getPerformanceTracking(period, startDate, endDate),
             this.getAppointmentAnalytics(period, startDate, endDate),
             this.getLeadAnalytics(period, startDate, endDate),
             this.getCommunicationMetrics(period, startDate, endDate),
