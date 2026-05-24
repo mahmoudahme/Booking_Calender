@@ -132,16 +132,14 @@ export class DashboardService {
         });
 
         // 1. Fetch global invoice totals directly from account_move
-        // totalRevenue = amount_untaxed  → matches Odoo "Invoiced" KPI exactly
-        // totalForRate  = amount_total   → denominator for collection rate %
-        // paidAmount/pendingAmount are from amount_total basis, then we split totalRevenue
-        //   proportionally so that paid + pending = totalRevenue always (consistent with KPI card)
+        // out_refund (credit notes) reduce revenue — subtract them to match Odoo's "Invoiced" KPI.
+        // totalForRate/paidAmount/pendingAmount use invoices+receipts only (clean collection rate).
         const globalTotals = await this.accountMoveRepo.createQueryBuilder('inv')
-            .select('SUM(inv.amount_untaxed)', 'totalRevenue')
-            .addSelect('SUM(inv.amount_total)', 'totalForRate')
-            .addSelect('SUM(inv.amount_total - COALESCE(inv.amount_residual, 0))', 'paidAmount')
-            .addSelect('SUM(COALESCE(inv.amount_residual, 0))', 'pendingAmount')
-            .where("inv.move_type IN ('out_invoice','out_receipt') AND inv.state = 'posted'")
+            .select(`SUM(CASE WHEN inv.move_type = 'out_refund' THEN -inv.amount_untaxed ELSE inv.amount_untaxed END)`, 'totalRevenue')
+            .addSelect(`SUM(CASE WHEN inv.move_type IN ('out_invoice','out_receipt') THEN inv.amount_total ELSE 0 END)`, 'totalForRate')
+            .addSelect(`SUM(CASE WHEN inv.move_type IN ('out_invoice','out_receipt') THEN inv.amount_total - COALESCE(inv.amount_residual, 0) ELSE 0 END)`, 'paidAmount')
+            .addSelect(`SUM(CASE WHEN inv.move_type IN ('out_invoice','out_receipt') THEN COALESCE(inv.amount_residual, 0) ELSE 0 END)`, 'pendingAmount')
+            .where("inv.move_type IN ('out_invoice','out_receipt','out_refund') AND inv.state = 'posted'")
             .andWhere('inv.invoice_date BETWEEN :start AND :end', { start, end })
             .getRawOne();
 
