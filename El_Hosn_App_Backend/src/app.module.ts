@@ -12,27 +12,31 @@ import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } fro
 import * as path from 'path';
 import * as fs from 'fs';
 
-const envFilePath = path.resolve(__dirname, '..', '.env');
+// production: __dirname = dist/src/ → go up 2 levels to reach project root
+// development (ts-node): __dirname = src/ → go up 1 level
+const envFilePath = [
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../.env'),
+  '.env',
+];
 
-// Determine i18n path - check both src and dist
 function getI18nPath(): string {
-  const srcPath = path.join(process.cwd(), 'src', 'i18n');
-  const distPath = path.join(process.cwd(), 'dist', 'i18n');
+  // development: __dirname = src/, i18n at src/i18n
+  const devPath = path.resolve(__dirname, 'i18n');
+  // production: __dirname = dist/src/, i18n compiled at dist/i18n
+  const prodPath = path.resolve(__dirname, '..', 'i18n');
 
-  // In development, use src/i18n
-  if (fs.existsSync(srcPath)) {
-    return srcPath;
+  if (fs.existsSync(devPath)) {
+    return devPath;
   }
-
-  // In production, use dist/i18n
-  return distPath;
+  return prodPath;
 }
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [envFilePath, '.env'],
+      envFilePath,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
