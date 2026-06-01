@@ -3,7 +3,7 @@ import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
-import { ConfigModule, ConfigService } from '@nestjs/config'; 
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { getDatabaseConfig } from '../config/database.config';
@@ -11,6 +11,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 import * as fs from 'fs';
+
+const envFilePath = path.resolve(__dirname, '..', '.env');
 
 // Determine i18n path - check both src and dist
 function getI18nPath(): string {
@@ -30,7 +32,7 @@ function getI18nPath(): string {
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: [envFilePath, '.env'],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
