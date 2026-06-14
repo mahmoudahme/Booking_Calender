@@ -34,6 +34,7 @@ import LeadSourceChart from './LeadSourceChart';
 import LeadConversionTrend from './LeadConversionTrend';
 import CommunicationPanel from './CommunicationPanel';
 import BookingPerformancePanel from './BookingPerformancePanel';
+import PaymentBreakdownCard from './PaymentBreakdownCard';
 
 /* ── Navigation structure ───────────────────────────────── */
 const NAV_GROUPS = [
@@ -233,7 +234,6 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                         subtitle={`SAR — ${periodLabel}`}
                         icon={DollarSign}
                         color="green"
-                        trend={financial ? 12.5 : undefined}
                     />
                     <StatCard
                         title="Appointments"
@@ -278,34 +278,42 @@ const Dashboard = ({ appointments, doctors, selectedDate }) => {
                     {activeTab === 'financial' && (
                         <motion.div key="financial" className="db-section" variants={contentVariants} initial="hidden" animate="visible" exit="exit">
                             <div className="dashboard-grid dashboard-grid-2">
-                                <RevenueChart data={financial?.branchRevenue} />
+                                <PaymentBreakdownCard
+                                    paymentBreakdown={financial?.paymentBreakdown}
+                                    overdue={financial?.overdue}
+                                />
                                 <CollectionRateChart data={financial?.summary} />
                             </div>
                             <div className="dashboard-grid dashboard-grid-2">
-                                <BranchComparisonChart data={financial?.branchComparison} />
+                                <TopServicesChart data={services?.topServices} />
                                 <motion.div className="chart-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                                    <h4 className="chart-title"><Award size={17} /> Branch Revenue Ranking</h4>
-                                    {financial?.branchRevenue ? (
+                                    <h4 className="chart-title"><Award size={17} /> Branch Appointments Ranking</h4>
+                                    {financial?.branchRevenue?.length > 0 ? (
                                         <div className="ranking-list">
-                                            {financial.branchRevenue.map((branch, i) => (
-                                                <div key={branch.branchId} className="ranking-item">
-                                                    <span className={`ranking-badge ${i === 0 ? 'gold' : i === 1 ? 'silver' : 'bronze'}`}>#{i + 1}</span>
-                                                    <div className="ranking-info">
-                                                        <span className="ranking-name">{branch.branchName}</span>
-                                                        <span className="ranking-detail">{branch.appointmentCount} appointments</span>
-                                                    </div>
-                                                    <div className="ranking-value">
-                                                        <span className="ranking-amount">{branch.totalRevenue.toLocaleString()} SAR</span>
-                                                        <span className="ranking-rate">{branch.collectionRate}% collected</span>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                            {[...financial.branchRevenue]
+                                                .sort((a, b) => b.appointmentCount - a.appointmentCount)
+                                                .map((branch, i) => {
+                                                    const total = financial.branchRevenue.reduce((s, b) => s + b.appointmentCount, 0);
+                                                    const pct   = total > 0 ? Math.round((branch.appointmentCount / total) * 100) : 0;
+                                                    return (
+                                                        <div key={branch.branchId} className="ranking-item">
+                                                            <span className={`ranking-badge ${i === 0 ? 'gold' : i === 1 ? 'silver' : 'bronze'}`}>#{i + 1}</span>
+                                                            <div className="ranking-info" style={{ flex: 1 }}>
+                                                                <span className="ranking-name">{branch.branchName}</span>
+                                                                <div style={{ marginTop: 4, height: 4, borderRadius: 2, background: 'var(--border-color)', overflow: 'hidden' }}>
+                                                                    <div style={{ width: `${pct}%`, height: '100%', background: i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#92400e', borderRadius: 2 }} />
+                                                                </div>
+                                                            </div>
+                                                            <div className="ranking-value">
+                                                                <span className="ranking-amount">{branch.appointmentCount.toLocaleString()}</span>
+                                                                <span className="ranking-rate">{pct}% of total</span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                         </div>
                                     ) : <div className="chart-empty">No data</div>}
                                 </motion.div>
-                            </div>
-                            <div className="dashboard-grid dashboard-grid-1">
-                                <RevenueTrendChart data={financial?.dailyTrend} period={period} periodLabel={periodLabel} />
                             </div>
                         </motion.div>
                     )}

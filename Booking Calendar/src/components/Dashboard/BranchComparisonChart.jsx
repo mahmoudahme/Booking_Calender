@@ -35,7 +35,7 @@ const BranchComparisonChart = ({ data }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
         >
-            <h4 className="chart-title"><GitCompare size={18} /> Revenue vs Appointments by Branch</h4>
+            <h4 className="chart-title"><GitCompare size={24} /> Revenue vs Appointments by Branch</h4>
             <div className="chart-container">
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>

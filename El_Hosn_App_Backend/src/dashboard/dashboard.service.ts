@@ -131,26 +131,97 @@ export class DashboardService {
             branchStatsMap.get(bid).appointmentCount = Number(ac.count);
         });
 
-        // 1. Fetch global invoice totals directly from account_move
-        // out_refund (credit notes) reduce revenue — subtract them to match Odoo's "Invoiced" KPI.
-        // totalForRate/paidAmount/pendingAmount use invoices+receipts only (clean collection rate).
+        // 1a. Collection-rate basis (cash view): header amount_total/residual on invoices+receipts.
         const globalTotals = await this.accountMoveRepo.createQueryBuilder('inv')
-            .select(`SUM(CASE WHEN inv.move_type = 'out_refund' THEN -inv.amount_untaxed ELSE inv.amount_untaxed END)`, 'totalRevenue')
-            .addSelect(`SUM(CASE WHEN inv.move_type IN ('out_invoice','out_receipt') THEN inv.amount_total ELSE 0 END)`, 'totalForRate')
+            .select(`SUM(CASE WHEN inv.move_type IN ('out_invoice','out_receipt') THEN inv.amount_total ELSE 0 END)`, 'totalForRate')
             .addSelect(`SUM(CASE WHEN inv.move_type IN ('out_invoice','out_receipt') THEN inv.amount_total - COALESCE(inv.amount_residual, 0) ELSE 0 END)`, 'paidAmount')
             .addSelect(`SUM(CASE WHEN inv.move_type IN ('out_invoice','out_receipt') THEN COALESCE(inv.amount_residual, 0) ELSE 0 END)`, 'pendingAmount')
-            .where("inv.move_type IN ('out_invoice','out_receipt','out_refund') AND inv.state = 'posted'")
+            .where("inv.move_type IN ('out_invoice','out_receipt') AND inv.state = 'posted'")
             .andWhere('inv.invoice_date BETWEEN :start AND :end', { start, end })
             .getRawOne();
 
-        const gTotalRevenue  = Number(globalTotals?.totalRevenue) || 0;
+        // 1b. Total revenue = real recognised revenue from the General Ledger income accounts
+        // (net credit). This matches Odoo's P&L and is immune to invoices whose product lines were
+        // booked to the wrong account type (liability/cash) — their header amount_untaxed is corrupted.
+        const incomeRevenue = await this.accountMoveLineRepo.createQueryBuilder('aml')
+            .select('SUM(aml.credit - aml.debit)', 'revenue')
+            .innerJoin('account_move', 'am', 'am.id = aml.move_id')
+            .innerJoin('account_account', 'aa', 'aa.id = aml.account_id')
+            .where("am.move_type IN ('out_invoice','out_receipt','out_refund') AND am.state = 'posted'")
+            .andWhere("aa.account_type IN ('income','income_other')")
+            .andWhere('am.invoice_date BETWEEN :start AND :end', { start, end })
+            .getRawOne();
+
+        const gTotalRevenue  = Math.round((Number(incomeRevenue?.revenue) || 0) * 100) / 100;
         const gTotalForRate  = Number(globalTotals?.totalForRate) || 0;
-        const collectedRatio = gTotalForRate > 0
-            ? Number(globalTotals?.paidAmount) / gTotalForRate
-            : 0;
-        // Split untaxed revenue by the same collected ratio → paid + pending = totalRevenue
-        const gTotalPaid    = Math.round(gTotalRevenue * collectedRatio);
-        const gTotalPending = gTotalRevenue - gTotalPaid;
+        // Collection (cash) view — real money collected vs outstanding, both VAT-inclusive,
+        // straight from amount_total / amount_residual. Rate = collected ÷ invoiced (same units).
+        const gTotalPaid    = Math.round(Number(globalTotals?.paidAmount)    || 0);
+        const gTotalPending = Math.round(Number(globalTotals?.pendingAmount) || 0);
+        const collectedRatio = gTotalForRate > 0 ? gTotalPaid / gTotalForRate : 0;
+
+        // Payment status breakdown for selected period
+        const paymentStateRaw = await this.accountMoveRepo.createQueryBuilder('inv')
+            .select('inv.payment_state', 'paymentState')
+            .addSelect('COUNT(*)', 'cnt')
+            .addSelect('SUM(inv.amount_untaxed)', 'untaxed')
+            .addSelect('SUM(inv.amount_total)', 'total')
+            .addSelect('SUM(inv.amount_total - COALESCE(inv.amount_residual, 0))', 'collected')
+            .addSelect('SUM(COALESCE(inv.amount_residual, 0))', 'outstanding')
+            .where("inv.move_type IN ('out_invoice','out_receipt') AND inv.state = 'posted'")
+            .andWhere('inv.invoice_date BETWEEN :start AND :end', { start, end })
+            .groupBy('inv.payment_state')
+            .getRawMany();
+
+        const stateMap: Record<string, any> = {};
+        paymentStateRaw.forEach(r => { stateMap[r.paymentState] = r; });
+
+        // Revenue per payment_state from GL income accounts — keeps the breakdown consistent
+        // with the headline total (paid + inPayment + partial + notPaid = totalRevenue).
+        const incomeByStateRaw = await this.accountMoveLineRepo.createQueryBuilder('aml')
+            .select('am.payment_state', 'paymentState')
+            .addSelect('SUM(aml.credit - aml.debit)', 'revenue')
+            .innerJoin('account_move', 'am', 'am.id = aml.move_id')
+            .innerJoin('account_account', 'aa', 'aa.id = aml.account_id')
+            .where("am.move_type IN ('out_invoice','out_receipt') AND am.state = 'posted'")
+            .andWhere("aa.account_type IN ('income','income_other')")
+            .andWhere('am.invoice_date BETWEEN :start AND :end', { start, end })
+            .groupBy('am.payment_state')
+            .getRawMany();
+        const incomeByState: Record<string, number> = {};
+        incomeByStateRaw.forEach(r => { incomeByState[r.paymentState] = Number(r.revenue) || 0; });
+
+        const mkState = (key: string) => ({
+            count:       Number(stateMap[key]?.cnt        ?? 0),
+            untaxed:     Math.round(incomeByState[key]    ?? 0),
+            total:       Math.round(Number(stateMap[key]?.total      ?? 0)),
+            collected:   Math.round(Number(stateMap[key]?.collected  ?? 0)),
+            outstanding: Math.round(Number(stateMap[key]?.outstanding ?? 0)),
+        });
+
+        // All-time overdue: posted invoices with residual > 0 past their due date
+        const overdueRaw = await this.accountMoveRepo.createQueryBuilder('inv')
+            .select('COUNT(*)', 'cnt')
+            .addSelect('SUM(COALESCE(inv.amount_residual, 0))', 'totalOutstanding')
+            .addSelect('SUM(inv.amount_total)', 'totalInvoiced')
+            .where("inv.move_type IN ('out_invoice','out_receipt') AND inv.state = 'posted'")
+            .andWhere('inv.amount_residual > 0')
+            .andWhere('(inv.invoice_date_due IS NULL OR inv.invoice_date_due < CURRENT_DATE)')
+            .getRawOne();
+
+        const overdueInvoices = await this.accountMoveRepo.createQueryBuilder('inv')
+            .select('inv.name', 'name')
+            .addSelect('inv.invoice_date', 'invoiceDate')
+            .addSelect('inv.invoice_date_due', 'dueDate')
+            .addSelect('ROUND(inv.amount_total::numeric, 2)', 'total')
+            .addSelect('ROUND(COALESCE(inv.amount_residual, 0)::numeric, 2)', 'outstanding')
+            .addSelect('inv.payment_state', 'paymentState')
+            .where("inv.move_type IN ('out_invoice','out_receipt') AND inv.state = 'posted'")
+            .andWhere('inv.amount_residual > 0')
+            .andWhere('(inv.invoice_date_due IS NULL OR inv.invoice_date_due < CURRENT_DATE)')
+            .orderBy('inv.invoice_date_due', 'ASC')
+            .limit(20)
+            .getRawMany();
 
         // 2. Distribute global totals by appointment share per branch
         apptByBranch.forEach(ac => {
@@ -208,6 +279,25 @@ export class DashboardService {
                 overallCollectionRate: gTotalForRate > 0
                     ? Math.round((gTotalPaid / gTotalForRate) * 100)
                     : 0,
+            },
+            paymentBreakdown: {
+                paid:       mkState('paid'),
+                inPayment:  mkState('in_payment'),
+                partial:    mkState('partial'),
+                notPaid:    mkState('not_paid'),
+            },
+            overdue: {
+                count:            Number(overdueRaw?.cnt ?? 0),
+                totalOutstanding: Math.round(Number(overdueRaw?.totalOutstanding ?? 0)),
+                totalInvoiced:    Math.round(Number(overdueRaw?.totalInvoiced    ?? 0)),
+                invoices:         overdueInvoices.map(inv => ({
+                    name:         inv.name,
+                    invoiceDate:  inv.invoiceDate,
+                    dueDate:      inv.dueDate,
+                    total:        Number(inv.total),
+                    outstanding:  Number(inv.outstanding),
+                    paymentState: inv.paymentState,
+                })),
             },
             branchRevenue: ranked,
             topBranch: ranked[0] || null,
